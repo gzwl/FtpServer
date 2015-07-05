@@ -1,4 +1,5 @@
 #include "echo.h"
+#include "common.h"
 
 /*
  * Read - 读取固定字节数

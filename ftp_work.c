@@ -1,13 +1,17 @@
 #include "ftp_work.h"
-
+#include "common.h"
+#include "command.h"
+#include "echo.h"
+#include "event.h"
+#include "configure.h"
 
 static void HandleAlarm();
 static void Alarm(int signo);
 
 void WorkInit(event_t *ptr)
 {
-	close(ptr->nobody);
-	ptr->nobody = -1;	
+	close(ptr->nobodyfd);
+	ptr->nobodyfd = -1;	
 	HandleAlarm();    		
 }
 
@@ -37,7 +41,7 @@ static void Alarm(int signo)
 		close(pevent->datafd);
 	}
 	shutdown(pevent->connfd,SHUT_RD);
-	FtpReply(ptr,FTP_CONTROL_CLOSE,"Receive Timeout\r\n");
+	FtpReply(pevent,FTP_CONTROL_CLOSE,"Receive Timeout\r\n");
 	shutdown(pevent->connfd,SHUT_WR);
 	ErrQuit("Receive Timeout");
 }

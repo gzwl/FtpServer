@@ -1,4 +1,6 @@
 #include "ftp_nobody.h"
+#include "common.h"
+#include "event.h"
 
 void NobodyInit(event_t *ptr)
 {
@@ -30,7 +32,7 @@ void NobodyInit(event_t *ptr)
 	cap_user_data.permitted = cap_mask;
 	cap_user_data.inheritable = 0; 				//子进程不继承特权
 	if(capset(&cap_user_header, &cap_user_data) == -1)
-			ERR_EXIT("capset");	
+			ErrQuit("capset");	
 	
 }
 

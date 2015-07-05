@@ -1,10 +1,7 @@
 #ifndef FTP_WORK_H
 #define FTP_WORK_H
 
-#include "common.h"
-#include "echo.h"
-#include "command.h"
-
+#include "event.h"
 void WorkInit(event_t *ptr);
 
 void WorkHandle(event_t *ptr);

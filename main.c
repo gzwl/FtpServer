@@ -2,7 +2,7 @@
 #include "assist.h"
 #include "configure.h"
 #include "event.h"
-
+#include "common.h"
 
 
 int main(int argc,char **argv)
@@ -29,11 +29,12 @@ int main(int argc,char **argv)
 			EventInit(&eve);
 			pevent = &eve;
 			pevent->connfd = connfd;
-			EventBegin();
+			EventBegin(pevent);
 		}
 		else{
 			close(connfd);
 
 		}
 	}
+}
 

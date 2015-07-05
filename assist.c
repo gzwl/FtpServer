@@ -1,4 +1,6 @@
 #include "assist.h"
+#include "common.h"
+#include "echo.h"
 
 void CheckRoot()
 {

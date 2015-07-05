@@ -17,6 +17,6 @@ static void Sigchld(int signo)
 void HandleSigchld()
 {
 	if(signal(SIGCHLD,Sigchld) == SIG_ERR){
-		ErrQuit("signal error");
+		ErrQuit("signal");
 	}
 }	

@@ -14,11 +14,11 @@ void NobodyInit(event_t *ptr)
     if((p = getpwnam("nobody")) == NULL){
 		ErrQuit("getpwnam");
 	}
-	if(seteuid(p->pw_uid) == -1){
-		ErrQuit("seteuid");
-	}
 	if(setegid(p->pw_gid) == -1){
-		ErrQuit("setegid");
+		ErrQuit("NobodyInit setegid");
+	}
+	if(seteuid(p->pw_uid) == -1){
+		ErrQuit("NobodyInit seteuid");
 	}
 
 	//为进程添加绑定20端口的权限

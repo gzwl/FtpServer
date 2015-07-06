@@ -1,15 +1,23 @@
 #include "event.h"
 #include "ftp_nobody.h"
 #include "ftp_work.h"
-#include "echo.h"
+#include "common.h"
 
 event_t *pevent;
 void EventInit(event_t *ptr)
 {
+	memset(ptr->command,0,sizeof(ptr->command));
+	memset(ptr->com,0,sizeof(ptr->com));
+	memset(ptr->args,0,sizeof(ptr->args));
+
 	ptr->datafd = -1;
 	ptr->connfd = -1;
 	ptr->nobodyfd = -1;
    	ptr->workfd = -1;
+
+	ptr->login = -1;
+	ptr->useruid = -1;
+	memset(ptr->username,0,sizeof(ptr->username));
 }
 
 void EventBegin(event_t *ptr)
@@ -32,6 +40,14 @@ void EventBegin(event_t *ptr)
 		WorkInit(ptr);
 		WorkHandle(ptr);	
 	}
+}
+
+void EventResetCommand(event_t *ptr)
+{
+	memset(ptr->command,0,sizeof(ptr->command));
+	memset(ptr->com,0,sizeof(ptr->com));
+	memset(ptr->args,0,sizeof(ptr->args));
+
 }
 								
 								

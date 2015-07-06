@@ -1,6 +1,9 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include "common.h"
+
+
 # define MAX_LEN 1024
 typedef struct
 {
@@ -11,13 +14,18 @@ typedef struct
 	int connfd;			    //client与server的控制连接fd
 	int datafd;			    //client与server的数据连接fd
 
-	int nobodyfd;		//nobody进程所用fd
-	int workfd;			//work进程所用fd
+	int nobodyfd;			//nobody进程所用fd
+	int workfd;				//work进程所用fd
+
+	int login;				//登陆状态
+	char username[100];		//登录名
+	uid_t useruid			//登陆id 
 
 }event_t;
 
 extern event_t *pevent;
 void EventInit(event_t *ptr);
 void EventBegin(event_t *ptr);
+void EventResetCommand(event_t *ptr);
 
 #endif

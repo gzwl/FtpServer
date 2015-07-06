@@ -12,11 +12,11 @@ int main(int argc,char **argv)
 	int listenfd = TcpServer(Tunable_Listen_Address,Tunable_Listen_Port);
 	while(1){
 		struct sockaddr_in cliaddr;
-		socklen_t len;
+		socklen_t len = sizeof(cliaddr);
 		int connfd = accept(listenfd,(struct sockaddr*)&cliaddr,&len);
 		if(connfd < 0){
 			if(errno == EINTR)	continue;
-			else	ErrQuit("accept");
+			else	ErrQuit("main accept");
 		}
 
 		pid_t pid;

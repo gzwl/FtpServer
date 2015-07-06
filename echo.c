@@ -59,21 +59,13 @@ ssize_t Write(int fd,const void *buf,size_t n)
  */
 static ssize_t RecvPeek(int fd,void *buf,size_t n)
 {
-	size_t nleft = n;
 	ssize_t nread;
-	while(nleft){
-		nread = recv(fd,buf,nleft,MSG_PEEK);
-		if(nread < 0){
-			if(errno == EINTR)	continue;
-			else	return -1;
-		}
-		else if(nread == 0)		break;
-		else{
-			nleft -= nread;
-			buf += nread;
-		}
+	while(1){
+		nread = recv(fd,buf,n,MSG_PEEK);
+		if(nread < 0 && errno == EINTR)		continue;
+		break;
 	}
-	return n -= nleft;
+	return nread;
 }
 
 /*
@@ -95,11 +87,11 @@ size_t Readline(int fd,void *buf,size_t maxlen)
 		ssize_t i;
 		for(i = 0;i < nread;i++){
 			if(*(ptr + i) == '\n'){
-				nread = Read(fd,ptr,i);
-				if(nread != i)	return -1;
+				nread = Read(fd,ptr,i + 1);
+				if(nread != i + 1)		return -1;
 				nleft -= nread;
 				ptr += nread;
-				*ptr = 0;
+				*ptr = '\0';
 				return maxlen - nleft;
 			}
 		}
@@ -108,8 +100,9 @@ size_t Readline(int fd,void *buf,size_t maxlen)
 		nleft -= nread;
 		ptr += nread;
 	}
-	*ptr = 0;
-	return maxlen - nread;
+	*ptr = '\0';
+	return maxlen - nleft;
+
 }
 
 /*

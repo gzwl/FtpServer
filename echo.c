@@ -115,7 +115,7 @@ int TcpServer(const char *host,unsigned short port)
 {
 	int listenfd;
 	if((listenfd = socket(AF_INET,SOCK_STREAM,0)) < 0){
-		ErrQuit("socket");
+		return -1;
 	}
 	struct sockaddr_in servaddr;
 	servaddr.sin_family = AF_INET;
@@ -123,7 +123,7 @@ int TcpServer(const char *host,unsigned short port)
 		if(inet_pton(AF_INET,host,&servaddr.sin_addr) == 0){
 			struct hostent *hp = gethostbyname(host);
 			if(hp == NULL){
-				ErrQuit("gethostbyname");
+				return -1;
 			}
 			servaddr.sin_addr = *(struct in_addr *)(hp->h_addr_list);
 		}
@@ -133,13 +133,13 @@ int TcpServer(const char *host,unsigned short port)
 	servaddr.sin_port = htons(port);
 	int on = 1;
 	if(setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)) < 0){
-			ErrQuit("setsockopt");
+			return -1;
 	}
 	if(bind(listenfd,(struct sockaddr*)&servaddr,sizeof(servaddr)) < 0){
-			ErrQuit("bind");
+			return -1;
 	}
 	if(listen(listenfd,SOMAXCONN) < 0){
-			ErrQuit("listen");
+			return -1;
 	}
 	return listenfd;
 }

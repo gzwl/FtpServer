@@ -21,4 +21,15 @@ void HandleSigchld()
 	if(signal(SIGCHLD,Sigchld) == SIG_ERR){
 		ErrQuit("signal");
 	}
-}	
+}
+
+void GetLocalIp(struct in_addr  *ip)
+{
+	char name [32];
+	gethostname(name,sizeof(name));
+	struct hostent *p = gethostbyname(name);
+	if(p == NULL){
+		ErrQuit("GetLocalIP gethostbyname");
+	}
+	memcpy(ip,p->h_addr_list[0],sizeof(ip));
+}

@@ -7,19 +7,25 @@
 # define MAX_LEN 1024
 typedef struct
 {
-	char command[MAX_LEN];	//client发来的FTP指令
-	char com[MAX_LEN];		//命令
-	char args[MAX_LEN];		//参数
+	char command[MAX_LEN];		//client发来的FTP指令
+	char com[MAX_LEN];			//命令
+	char args[MAX_LEN];			//参数
 
-	int connfd;			    //client与server的控制连接fd
-	int datafd;			    //client与server的数据连接fd
+	int connfd;			    	//client与server的控制连接fd
+	int datafd;			    	//client与server的数据连接fd
+	int listenfd;				//server监听fd,pasv模式下使用
 
-	int nobodyfd;			//nobody进程所用fd
-	int workfd;				//work进程所用fd
+	int nobodyfd;				//nobody进程所用fd
+	int workfd;					//work进程所用fd
 
-	int login;				//登陆状态
-	char username[100];		//登录名
-	uid_t useruid			//登陆id 
+	int login;					//登陆状态
+	char username[100];			//登录名
+	uid_t useruid;				//登陆id
+
+	int pasv;					//是否打开pasv模式
+	int port;					//是否打开port模式
+
+	struct sockaddr_in *addr;	//client地址和端口号，port模式使用
 
 }event_t;
 

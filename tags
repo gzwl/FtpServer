@@ -5,7 +5,7 @@
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
 ASSIST_H	assist.h	2;"	d
-Alarm	ftp_work.c	/^static void Alarm(int signo)$/;"	f	file:
+Alarm	work.c	/^static void Alarm(int signo)$/;"	f	file:
 AllSpace	ftp_string.c	/^int AllSpace(const char *text)$/;"	f
 COMMAND_H	command.h	2;"	d
 COMMON_H	common.h	2;"	d
@@ -18,53 +18,73 @@ ErrQuit	common.h	23;"	d
 EventBegin	event.c	/^void EventBegin(event_t *ptr)$/;"	f
 EventInit	event.c	/^void EventInit(event_t *ptr)$/;"	f
 EventResetCommand	event.c	/^void EventResetCommand(event_t *ptr)$/;"	f
-FTP_COMMAND_ERR	command.h	12;"	d
-FTP_COMMAND_SEQ	command.h	13;"	d
-FTP_CONTROL_CLOSE	command.h	10;"	d
-FTP_LOGIN_ERR	command.h	14;"	d
-FTP_LOGIN_SUCCESS	command.h	7;"	d
-FTP_NOBODY_H	ftp_nobody.h	2;"	d
-FTP_SERVER_READY	command.h	6;"	d
+FTP_COMMAND_ERR	command.h	15;"	d
+FTP_COMMAND_FAIL	command.h	7;"	d
+FTP_COMMAND_SEQ	command.h	16;"	d
+FTP_COMMAND_SUCCESS	command.h	6;"	d
+FTP_CONTROL_CLOSE	command.h	13;"	d
+FTP_LOGIN_ERR	command.h	17;"	d
+FTP_LOGIN_SUCCESS	command.h	10;"	d
+FTP_PASV_OK	command.h	9;"	d
+FTP_SERVER_READY	command.h	8;"	d
 FTP_STRING_H	ftp_string.h	2;"	d
-FTP_USERNAME_OK	command.h	9;"	d
-FTP_WORK_H	ftp_work.h	2;"	d
+FTP_USERNAME_OK	command.h	12;"	d
+FTP_WORK_H	work.h	2;"	d
 FtpReply	command.c	/^void FtpReply(event_t *ptr,int status,const char* text)$/;"	f
-HandleAlarm	ftp_work.c	/^static void HandleAlarm()$/;"	f	file:
+GetLocalIp	assist.c	/^void GetLocalIp(struct in_addr  *ip)$/;"	f
+HandleAlarm	work.c	/^static void HandleAlarm()$/;"	f	file:
 HandleSigchld	assist.c	/^void HandleSigchld()$/;"	f
+IPC_COMMAND_BAD	work.h	14;"	d
+IPC_COMMAND_OK	work.h	13;"	d
+IPC_LISTEN_OPEN	work.h	9;"	d
+IpcRecvCommand	work.c	/^static void IpcRecvCommand(char *cmd)$/;"	f	file:
+IpcRecvResult	work.c	/^void IpcRecvResult(char *res)$/;"	f
+IpcSendCommand	work.c	/^void IpcSendCommand(const char cmd)$/;"	f
+IpcSendResult	work.c	/^static void IpcSendResult(const char res)$/;"	f	file:
 MAX_LEN	event.h	7;"	d
-NobodyHandle	ftp_nobody.c	/^void NobodyHandle(event_t *ptr)$/;"	f
-NobodyInit	ftp_nobody.c	/^void NobodyInit(event_t *ptr)$/;"	f
+NobodyHandle	work.c	/^void NobodyHandle(event_t *ptr)$/;"	f
+NobodyInit	work.c	/^void NobodyInit(event_t *ptr)$/;"	f
+OpenListenFd	work.c	/^static void OpenListenFd(event_t *ptr)$/;"	f	file:
 Read	echo.c	/^ssize_t Read(int fd,void *buf,size_t n)$/;"	f
 Readline	echo.c	/^size_t Readline(int fd,void *buf,size_t maxlen)$/;"	f
 RecvPeek	echo.c	/^static ssize_t RecvPeek(int fd,void *buf,size_t n)$/;"	f	file:
 Sigchld	assist.c	/^static void Sigchld(int signo)$/;"	f	file:
 SolveCommand	command.c	/^void SolveCommand(event_t *ptr)$/;"	f
+SolveCwd	command.c	/^static void SolveCwd(event_t *ptr)$/;"	f	file:
 SolvePass	command.c	/^static void SolvePass(event_t *ptr)$/;"	f	file:
 SolvePasv	command.c	/^static void SolvePasv(event_t *ptr)$/;"	f	file:
 SolvePort	command.c	/^static void SolvePort(event_t *ptr)$/;"	f	file:
+SolveQuit	command.c	/^static void SolveQuit(event_t *ptr)$/;"	f	file:
+SolveRmd	command.c	/^static void SolveRmd(event_t *ptr)$/;"	f	file:
 SolveUser	command.c	/^static void SolveUser(event_t *ptr)$/;"	f	file:
 StrSplit	ftp_string.c	/^void StrSplit(const char *text,char *lhs,char *rhs,char cut)$/;"	f
 TcpServer	echo.c	/^int TcpServer(const char *host,unsigned short port)$/;"	f
 Tunable_Listen_Address	configure.c	/^const char *Tunable_Listen_Address = NULL;$/;"	v
 Tunable_Listen_Port	configure.c	/^unsigned short int Tunable_Listen_Port = 7812;$/;"	v
+Tunable_Local_Umask	configure.c	/^unsigned int Tunable_Local_Umask = 0077;$/;"	v
 Tunable_Recv_Timeout	configure.c	/^unsigned int Tunable_Recv_Timeout = 600;$/;"	v
-WorkHandle	ftp_work.c	/^void WorkHandle(event_t *ptr)$/;"	f
-WorkInit	ftp_work.c	/^void WorkInit(event_t *ptr)$/;"	f
+WorkHandle	work.c	/^void WorkHandle(event_t *ptr)$/;"	f
+WorkInit	work.c	/^void WorkInit(event_t *ptr)$/;"	f
 Write	echo.c	/^ssize_t Write(int fd,const void *buf,size_t n)$/;"	f
-args	event.h	/^	char args[MAX_LEN];		\/\/参数$/;"	m	struct:__anon1
-com	event.h	/^	char com[MAX_LEN];		\/\/命令$/;"	m	struct:__anon1
-command	event.h	/^	char command[MAX_LEN];	\/\/client发来的FTP指令$/;"	m	struct:__anon1
-connfd	event.h	/^	int connfd;			    \/\/client与server的控制连接fd$/;"	m	struct:__anon1
-datafd	event.h	/^	int datafd;			    \/\/client与server的数据连接fd$/;"	m	struct:__anon1
+addr	event.h	/^	struct sockaddr_in *addr;	\/\/client地址和端口号，port模式使用$/;"	m	struct:__anon1	typeref:struct:__anon1::sockaddr_in
+args	event.h	/^	char args[MAX_LEN];			\/\/参数$/;"	m	struct:__anon1
+com	event.h	/^	char com[MAX_LEN];			\/\/命令$/;"	m	struct:__anon1
+command	event.h	/^	char command[MAX_LEN];		\/\/client发来的FTP指令$/;"	m	struct:__anon1
+connfd	event.h	/^	int connfd;			    	\/\/client与server的控制连接fd$/;"	m	struct:__anon1
+datafd	event.h	/^	int datafd;			    	\/\/client与server的数据连接fd$/;"	m	struct:__anon1
 event_t	event.h	/^}event_t;$/;"	t	typeref:struct:__anon1
 ftp_cmd_s	command.c	/^static ftp_cmd_t ftp_cmd_s[] = {$/;"	v	file:
 ftp_cmd_t	command.c	/^}ftp_cmd_t;$/;"	t	typeref:struct:__anon2	file:
 handler	command.c	/^	void (*handler)(event_t *ptr);$/;"	m	struct:__anon2	file:
-login	event.h	/^	int login;				\/\/登陆状态$/;"	m	struct:__anon1
+listenfd	event.h	/^	int listenfd;				\/\/server监听fd,pasv模式下使用$/;"	m	struct:__anon1
+login	event.h	/^	int login;					\/\/登陆状态$/;"	m	struct:__anon1
 main	main.c	/^int main(int argc,char **argv)$/;"	f
-nobodyfd	event.h	/^	int nobodyfd;			\/\/nobody进程所用fd$/;"	m	struct:__anon1
-objs	makefile	/^objs=assist.o echo.o event.o ftp_nobody.o ftp_work.o command.o configure.o ftp_string.o main.o$/;"	m
+nobodyfd	event.h	/^	int nobodyfd;				\/\/nobody进程所用fd$/;"	m	struct:__anon1
+objs	makefile	/^objs=assist.o echo.o event.o  work.o command.o configure.o ftp_string.o main.o$/;"	m
+pasv	event.h	/^	int pasv;					\/\/是否打开pasv模式$/;"	m	struct:__anon1
 pevent	event.c	/^event_t *pevent;$/;"	v
+port	event.h	/^	int port;					\/\/是否打开port模式$/;"	m	struct:__anon1
 text	command.c	/^	const char *text;$/;"	m	struct:__anon2	file:
-username	event.h	/^	char username[100];		\/\/登录名$/;"	m	struct:__anon1
-workfd	event.h	/^	int workfd;				\/\/work进程所用fd$/;"	m	struct:__anon1
+username	event.h	/^	char username[100];			\/\/登录名$/;"	m	struct:__anon1
+useruid	event.h	/^	uid_t useruid;				\/\/登陆id$/;"	m	struct:__anon1
+workfd	event.h	/^	int workfd;					\/\/work进程所用fd$/;"	m	struct:__anon1

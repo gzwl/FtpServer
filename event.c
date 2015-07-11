@@ -1,6 +1,5 @@
 #include "event.h"
-#include "ftp_nobody.h"
-#include "ftp_work.h"
+#include "work.h"
 #include "common.h"
 
 event_t *pevent;
@@ -12,12 +11,17 @@ void EventInit(event_t *ptr)
 
 	ptr->datafd = -1;
 	ptr->connfd = -1;
+	ptr->listenfd = -1;
+
 	ptr->nobodyfd = -1;
    	ptr->workfd = -1;
 
 	ptr->login = -1;
 	ptr->useruid = -1;
 	memset(ptr->username,0,sizeof(ptr->username));
+
+	int pasv = 0;
+	int port = 0;
 }
 
 void EventBegin(event_t *ptr)

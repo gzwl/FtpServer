@@ -22,7 +22,15 @@ void CleanRight(char *text)
 
 }
 
-
+void LetterUpper(char *text)
+{
+	while(*text){
+		if(*text >= 'a' && *text <= 'z'){
+			*text = *text - ('a' - 'A');
+		}
+		text++;
+	}
+}
 
 int AllSpace(const char *text)
 {
@@ -32,3 +40,6 @@ int AllSpace(const char *text)
 	return  1;
 
 }
+
+
+

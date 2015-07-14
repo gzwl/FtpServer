@@ -1,5 +1,6 @@
 #include "echo.h"
 #include "common.h"
+#include "assist.h"
 
 /*
  * Read - 读取固定字节数
@@ -145,14 +146,156 @@ int TcpServer(const char *host,unsigned short port)
 }
 			
 			
+/*
+ * SendFd - 向目标进程发送文件描述符
+ * des：发送套接字
+ * fd ：需要发送的文件描述符  
+ * 成功返回发送的字节数，失败返回-1
+ */
+
+int SendFd(int des,int fd)
+{
+	struct msghdr msg;
+	struct cmsghdr *pmsg;
+	struct iovec vec;
+	char ms[CMSG_SPACE(sizeof(fd))];
+	msg.msg_control = ms;
+	msg.msg_controllen = sizeof(ms);
+
+	msg.msg_name = 0;
+	msg.msg_namelen = 0;
+	msg.msg_iov = &vec;
+	msg.msg_iovlen = 1;
+	msg.msg_flags = 0;
+
+	pmsg = CMSG_FIRSTHDR(&msg);
+	pmsg->cmsg_level = SOL_SOCKET;
+	pmsg->cmsg_type = SCM_RIGHTS;
+	pmsg->cmsg_len = CMSG_LEN(sizeof(fd));
+
+	int *p = (int*)CMSG_DATA(pmsg);
+	*p = fd;
+	return sendmsg(des,&msg,0);
+}
 
 
+/*
+ *  RecvFd - 接受来自目标进程的文件描述符
+ *  des : 接受套接字
+ *  fd  : 需要接受的文件描述符地址
+ *  成功返回0,失败返回-1
+ */
+int RecvFd(int des,int* fd)
+{
+	struct msghdr msg;
+	struct cmsghdr *pmsg;
+	struct iovec vec;
+	char ms[CMSG_SPACE(sizeof(int))];
+	msg.msg_control = ms;
+	msg.msg_controllen = sizeof(ms);
+	
+	msg.msg_name = 0;
+	msg.msg_namelen = 0;
+	msg.msg_iov = &vec;
+	msg.msg_iovlen = 1;
+	msg.msg_flags = 0;
+
+    if(recvmsg(des,&msg,0) < 0)		return -1;
+
+	pmsg = CMSG_FIRSTHDR(&msg);
+	*fd = *(int*)CMSG_DATA(pmsg);
+	return 0;
+}
+
+/*
+ * 	AcceptTimeout - 返回下一个已完成连接(带超时)
+ *  sockfd  : 监听套接字
+ *  cliaddr : 客户端地址和协议   
+ *  timeout : 等待时间
+ *  成功返回套接字，超时返回0，出错返回-1
+ */
+int AcceptTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
+{
+	if(timeout > 0){
+		struct timeval t;
+		t.tv_sec = timeout;
+		t.tv_usec = 0;
+		fd_set rset;
+		FD_ZERO(&rset);
+		FD_SET(sockfd,&rset);
+		int res;
+		do{
+			res = select(sockfd + 1,&rset,NULL,NULL,&t);
+		}while(res < 0 && errno == EINTR);
+		if(res <= 0)	return res;
+		int len = sizeof(struct sockaddr_in);
+		return accept(sockfd,(struct sockaddr*)cliaddr,&len);
+	}
+	else{
+		int len = sizeof(struct sockaddr_in);
+		return accept(sockfd,(struct sockaddr*)cliaddr,&len);
+	}
+}
 
 
+/*
+ *	ConnectTimeout - 像目标发起连接
+ *	sockfd  : 连接套接字
+ *	cliaddr : 目标地址和协议
+ *	timeout : 等待时间
+ *	成功返回1,超时返回0,失败返回-1
+ */
+int ConnectTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
+{
+	if(timeout > 0){
+		
+		NonblockFd(sockfd);			
+		int flag = connect(sockfd,(struct sockaddr*)cliaddr,sizeof(struct sockaddr_in));
+
+		//connect连接未建立
+		if(flag == -1 && errno == EINPROGRESS){
+		
+			fd_set rset,wset;
+			FD_ZERO(&rset);
+			FD_SET(sockfd,&rset);
+			wset = rset;
+			struct timeval t;
+			t.tv_sec = timeout;
+			t.tv_usec = 0;
+			do{
+				flag = select(sockfd + 1,&rset,&wset,NULL,&t);
+			}while(flag < 0 && errno == EINTR);
+			BlockFd(sockfd);
+			if(flag == 0)	return 0;	//超时
+			if(FD_ISSET(sockfd,&rset) || FD_ISSET(sockfd,&wset)){
+				int error,len;				
+				getsockopt(sockfd,SOL_SOCKET,SO_ERROR,&error,&len);
+				if(error)	return -1;
+				return 1;
+			}
+			return -1;
+		}
+
+		//连接已建立，如服务器在客户主机上
+		else if(flag == 0){
+			BlockFd(sockfd);
+			return 1;
+		}
+		//出现错误
+		else{
+			BlockFd(sockfd);	
+			return -1;
+		}
+
+	}	
+	else{
+		int flag = connect(sockfd,(struct sockaddr*)cliaddr,sizeof(struct sockaddr_in));
+		if(flag < 0)	return flag;
+		return 1;
+	}
 
 
-
-
+}
 
 
 

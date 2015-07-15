@@ -20,8 +20,12 @@ void EventInit(event_t *ptr)
 	ptr->useruid = -1;
 	memset(ptr->username,0,sizeof(ptr->username));
 
-	int pasv = 0;
-	int port = 0;
+	ptr->pasv = 0;
+	ptr->port = 0;
+
+  	ptr->transmode = 0;
+
+	ptr->addr = NULL;
 }
 
 void EventBegin(event_t *ptr)

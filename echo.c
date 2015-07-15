@@ -158,7 +158,13 @@ int SendFd(int des,int fd)
 	struct msghdr msg;
 	struct cmsghdr *pmsg;
 	struct iovec vec;
+
 	char ms[CMSG_SPACE(sizeof(fd))];
+	char sendchar;
+    
+	vec.iov_base = &sendchar;
+	vec.iov_len = sizeof(sendchar);
+
 	msg.msg_control = ms;
 	msg.msg_controllen = sizeof(ms);
 
@@ -185,12 +191,18 @@ int SendFd(int des,int fd)
  *  fd  : 需要接受的文件描述符地址
  *  成功返回0,失败返回-1
  */
-int RecvFd(int des,int* fd)
+int RecvFd(const int des,int* fd)
 {
 	struct msghdr msg;
 	struct cmsghdr *pmsg;
 	struct iovec vec;
+
+	char recvchar;
 	char ms[CMSG_SPACE(sizeof(int))];
+
+	vec.iov_base = &recvchar;
+	vec.iov_len = sizeof(recvchar);
+
 	msg.msg_control = ms;
 	msg.msg_controllen = sizeof(ms);
 	
@@ -199,9 +211,7 @@ int RecvFd(int des,int* fd)
 	msg.msg_iov = &vec;
 	msg.msg_iovlen = 1;
 	msg.msg_flags = 0;
-
     if(recvmsg(des,&msg,0) < 0)		return -1;
-
 	pmsg = CMSG_FIRSTHDR(&msg);
 	*fd = *(int*)CMSG_DATA(pmsg);
 	return 0;

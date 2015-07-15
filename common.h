@@ -19,6 +19,13 @@
 #include <netdb.h>
 #include <linux/capability.h>
 #include <pwd.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+#include <shadow.h>
+#include <crypt.h>
+#include <dirent.h>
+#include <time.h>
+
 
 #define ErrQuit(s)\
 	do{\

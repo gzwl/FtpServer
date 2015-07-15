@@ -7,17 +7,22 @@
 
 
 #define IPC_LISTEN_OPEN  1
-
+#define IPC_ACCEPT		 2
+#define IPC_CONNECT		 3
 
 
 #define IPC_COMMAND_OK   5
 #define IPC_COMMAND_BAD  6
 
 //work进程向nobody进程发送命令                                                                                                                                                    
-void IpcSendCommand(const char cmd);
+int IpcSendCommand(event_t *ptr,const char cmd);
 
 //work进程接受来自nobody进程的命令结果                                                                                                                                            
-void IpcRecvResult(char *res); 
+int IpcRecvResult(event_t *ptr,char *res); 
+
+int IpcRecvFd(event_t *ptr,int *fd);
+
+int IpcSendDigit(event_t *ptr,int num);
 
 void WorkInit(event_t *ptr);
 

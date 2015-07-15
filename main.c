@@ -16,7 +16,7 @@ int main(int argc,char **argv)
 		int connfd = accept(listenfd,(struct sockaddr*)&cliaddr,&len);
 		if(connfd < 0){
 			if(errno == EINTR)	continue;
-			else	ErrQuit("main accept");
+			else	ErrQuit("main - accept");
 		}
 
 		pid_t pid;
@@ -25,11 +25,10 @@ int main(int argc,char **argv)
 		}
 		else if(pid == 0){
 			close(listenfd);
-			event_t eve;
+			event_t eve;			
 			EventInit(&eve);
-			pevent = &eve;
-			pevent->connfd = connfd;
-			EventBegin(pevent);
+			eve.connfd = connfd;
+			EventBegin(&eve);
 		}
 		else{
 			close(connfd);

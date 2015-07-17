@@ -23,8 +23,10 @@ static void SolvePwd(event_t *ptr);
 static void SolveNlst(event_t *ptr);
 static void SolveNoop(event_t *ptr);
 static void SolveQuit(event_t *ptr);
+static void SolveRest(event_t *ptr);
 static void SolveRmd(event_t *ptr);
 static void SolveRetr(event_t *ptr);
+static void SolveSize(event_t *ptr);
 static void SolveSyst(event_t *ptr);
 static void SolveType(event_t *ptr);
 
@@ -46,9 +48,11 @@ static ftp_cmd_t ftp_cmd_s[] = {
 	
 	{"QUIT" ,   SolveQuit},
 
+	{"REST"	,	SolveRest},
 	{"RETR" ,   SolveRetr},
 	{"RMD"	,	SolveRmd},
 
+	{"SIZE" ,	SolveSize},
 	{"SYST" ,	SolveSyst},
 
 	{"TYPE" ,   SolveType},
@@ -264,6 +268,12 @@ static void SolveQuit(event_t *ptr)
 	exit(0);
 }	
 
+static void SolveRest(event_t *ptr)
+{
+	ptr->restart_pos = atoll(ptr->args);
+	FtpReply(ptr,FTP_REST_OK,"Set restart position ok");
+}
+
 static void SolveRetr(event_t *ptr)
 {
 	DownloadFile(ptr);
@@ -279,10 +289,25 @@ static void SolveRmd(event_t *ptr)
 	}
 }
 
+static void SolveSize(event_t *ptr)
+{
+	struct stat buf;
+	if(stat(ptr->args,&buf) < 0){
+		FtpReply(ptr,FTP_FILE_ERR,"File name error");
+	}
+	else if(!S_ISREG(buf.st_mode)){
+		FtpReply(ptr,FTP_FILE_ERR,"Not regular file");
+	}
+	else{
+		char text[64];
+		snprintf(text,sizeof(text),"The size is: %u",buf.st_size);
+		FtpReply(ptr,FTP_SIZE_OK,text);
+	}	
+}
+
 static void SolveSyst(event_t *ptr)
 {
 	FtpReply(ptr,FTP_COMMAND_SUCCESS,"UNIX Type : L8");
-
 }
 
 static void SolveType(event_t *ptr)

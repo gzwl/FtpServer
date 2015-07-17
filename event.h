@@ -27,6 +27,8 @@ typedef struct
 	
 	int transmode;				//传输模式,0为ASCII码模式，1为binary模式
 
+	size_t restart_pos;		//断点重传的起点
+
 	struct sockaddr_in *addr;	//client地址和端口号，port模式使用
 
 }event_t;

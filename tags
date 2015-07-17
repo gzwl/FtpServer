@@ -24,32 +24,40 @@ ErrQuit	common.h	30;"	d
 EventBegin	event.c	/^void EventBegin(event_t *ptr)$/;"	f
 EventInit	event.c	/^void EventInit(event_t *ptr)$/;"	f
 EventResetCommand	event.c	/^void EventResetCommand(event_t *ptr)$/;"	f
-FTP_COMMAND_ERR	command.h	23;"	d
+FTP_COMMAND_ERR	command.h	27;"	d
 FTP_COMMAND_FAIL	command.h	10;"	d
-FTP_COMMAND_SEQ	command.h	25;"	d
+FTP_COMMAND_SEQ	command.h	29;"	d
 FTP_COMMAND_SUCCESS	command.h	8;"	d
-FTP_CONTROL_CLOSE	command.h	18;"	d
-FTP_DATA_BAD	command.h	19;"	d
+FTP_CONTROL_CLOSE	command.h	22;"	d
+FTP_DATA_BAD	command.h	23;"	d
 FTP_DATA_OK	command.h	6;"	d
-FTP_DATA_OVER_CLOSE	command.h	12;"	d
-FTP_FILE_FAIL	command.h	21;"	d
-FTP_LOGIN_ERR	command.h	26;"	d
-FTP_LOGIN_SUCCESS	command.h	14;"	d
-FTP_OVER	command.h	20;"	d
-FTP_PARAMETER_BAD	command.h	24;"	d
-FTP_PASV_OK	command.h	13;"	d
+FTP_DATA_OVER_CLOSE	command.h	13;"	d
+FTP_FILE_ERR	command.h	31;"	d
+FTP_FILE_FAIL	command.h	25;"	d
+FTP_FILE_SUCCESS	command.h	16;"	d
+FTP_LOGIN_ERR	command.h	30;"	d
+FTP_LOGIN_SUCCESS	command.h	15;"	d
+FTP_OVER	command.h	24;"	d
+FTP_PARAMETER_BAD	command.h	28;"	d
+FTP_PASV_OK	command.h	14;"	d
 FTP_PORT_OK	command.h	9;"	d
-FTP_SERVER_READY	command.h	11;"	d
+FTP_PWD_OK	command.h	17;"	d
+FTP_REST_OK	command.h	20;"	d
+FTP_SERVER_READY	command.h	12;"	d
+FTP_SIZE_OK	command.h	11;"	d
 FTP_STRING_H	ftp_string.h	2;"	d
-FTP_USERNAME_OK	command.h	16;"	d
+FTP_USERNAME_OK	command.h	19;"	d
 FTP_WORK_H	work.h	2;"	d
 FileReadLock	assist.c	/^int FileReadLock(int fd)$/;"	f
 FileUnlock	assist.c	/^int FileUnlock(int fd)$/;"	f
 FileWriteLock	assist.c	/^int FileWriteLock(int fd)$/;"	f
+FtpLreply	command.c	/^void FtpLreply(event_t *ptr,int status,const char *text)$/;"	f
 FtpReply	command.c	/^void FtpReply(event_t *ptr,int status,const char* text)$/;"	f
 GetDatafd	transfer.c	/^static int GetDatafd(event_t *ptr)$/;"	f	file:
+GetListInfo	transfer.c	/^static char* GetListInfo(struct stat *pstat)$/;"	f	file:
 GetListName	transfer.c	/^static char* GetListName(struct stat *pstat,const char *name)$/;"	f	file:
 GetListSize	transfer.c	/^static char* GetListSize(struct stat *pstat)$/;"	f	file:
+GetListTime	transfer.c	/^static char* GetListTime(struct stat *pstat)$/;"	f	file:
 GetListType	transfer.c	/^static char* GetListType(struct stat *pstat)$/;"	f	file:
 GetLocalIp	assist.c	/^void GetLocalIp(struct in_addr  *ip)$/;"	f
 HandleAlarm	work.c	/^static void HandleAlarm()$/;"	f	file:
@@ -91,8 +99,10 @@ SolvePasv	command.c	/^static void SolvePasv(event_t *ptr)$/;"	f	file:
 SolvePort	command.c	/^static void SolvePort(event_t *ptr)$/;"	f	file:
 SolvePwd	command.c	/^static void SolvePwd(event_t *ptr)$/;"	f	file:
 SolveQuit	command.c	/^static void SolveQuit(event_t *ptr)$/;"	f	file:
+SolveRest	command.c	/^static void SolveRest(event_t *ptr)$/;"	f	file:
 SolveRetr	command.c	/^static void SolveRetr(event_t *ptr)$/;"	f	file:
 SolveRmd	command.c	/^static void SolveRmd(event_t *ptr)$/;"	f	file:
+SolveSize	command.c	/^static void SolveSize(event_t *ptr)$/;"	f	file:
 SolveSyst	command.c	/^static void SolveSyst(event_t *ptr)$/;"	f	file:
 SolveType	command.c	/^static void SolveType(event_t *ptr)$/;"	f	file:
 SolveUser	command.c	/^static void SolveUser(event_t *ptr)$/;"	f	file:
@@ -121,10 +131,11 @@ listenfd	event.h	/^	int listenfd;				\/\/server监听fd,pasv模式下使用$/;"	
 login	event.h	/^	int login;					\/\/登陆状态$/;"	m	struct:__anon1
 main	main.c	/^int main(int argc,char **argv)$/;"	f
 nobodyfd	event.h	/^	int nobodyfd;				\/\/nobody进程所用fd$/;"	m	struct:__anon1
-objs	makefile	/^objs=assist.o echo.o event.o  work.o command.o configure.o ftp_string.o transfer.o main.o$/;"	m
+objs	Makefile	/^objs=assist.o echo.o event.o  work.o command.o configure.o ftp_string.o transfer.o main.o$/;"	m
 pasv	event.h	/^	int pasv;					\/\/是否打开pasv模式$/;"	m	struct:__anon1
 pevent	event.c	/^event_t *pevent;$/;"	v
 port	event.h	/^	int port;					\/\/是否打开port模式$/;"	m	struct:__anon1
+restart_pos	event.h	/^	long long restart_pos;		\/\/断点重传的起点$/;"	m	struct:__anon1
 text	command.c	/^	const char *text;$/;"	m	struct:__anon2	file:
 transmode	event.h	/^	int transmode;				\/\/传输模式,0为ASCII码模式，1为binary模式$/;"	m	struct:__anon1
 username	event.h	/^	char username[100];			\/\/登录名$/;"	m	struct:__anon1

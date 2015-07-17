@@ -25,6 +25,8 @@ void EventInit(event_t *ptr)
 
   	ptr->transmode = 0;
 
+	ptr->restart_pos = 0;
+
 	ptr->addr = NULL;
 }
 

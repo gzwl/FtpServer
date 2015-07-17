@@ -8,6 +8,7 @@
 # define FTP_COMMAND_SUCCESS	200
 # define FTP_PORT_OK			200
 # define FTP_COMMAND_FAIL		202
+# define FTP_SIZE_OK			213
 # define FTP_SERVER_READY 	 	220
 # define FTP_DATA_OVER_CLOSE    226
 # define FTP_PASV_OK			227
@@ -16,6 +17,7 @@
 # define FTP_PWD_OK				257
 
 # define FTP_USERNAME_OK   		331	
+# define FTP_REST_OK			350
 
 # define FTP_CONTROL_CLOSE 		421
 # define FTP_DATA_BAD			425

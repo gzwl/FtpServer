@@ -4,7 +4,7 @@
 #include "work.h"
 #include "assist.h"
 
-#define TEST
+//#define TEST
 static int GetDatafd(event_t *ptr);
 static char* GetListName(struct stat *buf,const char* name);
 static char* GetListSize(struct stat *buf);
@@ -47,13 +47,27 @@ void DownloadFile(event_t *ptr)
 	}
     
 	size_t filesize = file.st_size;
+	filesize -= ptr->restart_pos;
+	lseek(fd,ptr->restart_pos,SEEK_SET);
+	ptr->restart_pos = 0;
+
+	char text[64];
+	if(ptr->transmode == 0){
+		sprintf(text,"Begin to transfer the file in ASCII mode(%d bytes)",filesize);
+	}
+	else
+		sprintf(text,"Begin to transfer the file in BINARY mode(%d bytes)",filesize);
+	FtpReply(ptr,FTP_DATA_OK,text);
+
+
 	while(filesize > 0){
-		size_t nwrite = sendfile(ptr->datafd,file,NULL,1024);
+		size_t nwrite = sendfile(ptr->datafd,fd,NULL,1024);
 		if(nwrite == -1 && errno == EINTR)	continue;
 		filesize -= nwrite;
 	}
 	
 	FileUnlock(fd);
+	close(fd);
 	close(ptr->datafd);
 	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Download file success\r\n");
 

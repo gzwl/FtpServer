@@ -5,7 +5,7 @@
 
 void DownloadFile(event_t *ptr);
 
-void UploadFile(event_t *ptr);
+void UploadFile(event_t *ptr,int op);
 
 void SendList(event_t *ptr,int op);
 

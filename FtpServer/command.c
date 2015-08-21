@@ -5,13 +5,9 @@
 #include "configure.h"
 #include "transfer.h"
 
-typedef struct
-{
-	const char *text;
-	void (*handler)(event_t *ptr);
-}ftp_cmd_t;
-
+static void SolveAppe(event_t *ptr);
 static void SolveCwd(event_t *ptr);
+static void SolveDele(event_t *ptr);
 static void SolveFeat(event_t *ptr);
 static void SolveList(event_t *ptr);
 static void SolveMkd(event_t *ptr);
@@ -27,12 +23,23 @@ static void SolveRest(event_t *ptr);
 static void SolveRmd(event_t *ptr);
 static void SolveRetr(event_t *ptr);
 static void SolveSize(event_t *ptr);
+static void SolveStor(event_t *ptr);
 static void SolveSyst(event_t *ptr);
 static void SolveType(event_t *ptr);
 
+typedef struct
+{
+	const char *text;
+	void (*handler)(event_t *ptr);
+}ftp_cmd_t;
+
 static ftp_cmd_t ftp_cmd_s[] = {
 	
-	{"CWD"	,	SolveCwd},	
+	{"APPE" ,	SolveAppe},
+
+	{"CWD"	,	SolveCwd},
+
+	{"Dele" ,	SolveDele},
 	
 	{"LIST" ,	SolveList},
 
@@ -53,6 +60,7 @@ static ftp_cmd_t ftp_cmd_s[] = {
 	{"RMD"	,	SolveRmd},
 
 	{"SIZE" ,	SolveSize},
+	{"STOR"	,	SolveStor},
 	{"SYST" ,	SolveSyst},
 
 	{"TYPE" ,   SolveType},
@@ -109,6 +117,11 @@ void SolveCommand(event_t *ptr)
 	 FtpReply(ptr,FTP_COMMAND_ERR,"Command no found");
 }
 
+static void SolveAppe(event_t *ptr)
+{
+	UploadFile(ptr,0);	
+}
+
 static void SolveCwd(event_t *ptr)
 {
 	if(chdir(ptr->args) < 0){
@@ -120,6 +133,16 @@ static void SolveCwd(event_t *ptr)
 
 }
 
+static void SolveDele(event_t *ptr)
+{
+	if(unlink(ptr->args) < 0){
+		FtpReply(ptr,FTP_FILE_ERR,"Delete file fail");
+	}
+	else{
+		FtpReply(ptr,FTP_FILE_SUCCESS,"Delete file success");
+	}
+
+}
 
 static void SolveList(event_t *ptr)
 {
@@ -257,7 +280,7 @@ static void SolvePwd(event_t *ptr)
 	}
 	else{
 		char text[128];
-		sprintf(text,"\"%s\"",buf);
+		snprintf(text,sizeof(text),"\"%s\"",buf);
 		FtpReply(ptr,FTP_PWD_OK,text);
 	}
 }
@@ -303,6 +326,11 @@ static void SolveSize(event_t *ptr)
 		snprintf(text,sizeof(text),"The size is: %u",buf.st_size);
 		FtpReply(ptr,FTP_SIZE_OK,text);
 	}	
+}
+
+static void SolveStor(event_t *ptr)
+{
+	UploadFile(ptr,1);
 }
 
 static void SolveSyst(event_t *ptr)

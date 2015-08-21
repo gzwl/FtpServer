@@ -61,7 +61,7 @@ void DownloadFile(event_t *ptr)
 
 
 	while(filesize > 0){
-		size_t nwrite = sendfile(ptr->datafd,fd,NULL,1024);
+		size_t nwrite = sendfile(ptr->datafd,fd,NULL,65536);
 		if(nwrite == -1 && errno == EINTR)	continue;
 		filesize -= nwrite;
 	}
@@ -69,7 +69,53 @@ void DownloadFile(event_t *ptr)
 	FileUnlock(fd);
 	close(fd);
 	close(ptr->datafd);
-	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Download file success\r\n");
+	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Download file successfully\r\n");
+
+}
+
+void UploadFile(event_t *ptr,int op)
+{
+	//打开或创建文件
+	int fd = open(ptr->args,O_WRONLY | O_CREAT,0666);
+	if(fd < 0){
+		FtpReply(ptr,FTP_FILE_FAIL,"Upload file fail");
+		return ;
+	}
+
+	//读锁
+	if(FileWriteLock(fd) < 0){
+		FtpReply(ptr,FTP_FILE_FAIL,"Upload file fail");
+		return ;
+	}
+
+	//APPE
+	if(op == 0){
+		lseek(fd,0,SEEK_END);
+	}
+	
+	//STOR
+	else{
+		ftruncate(fd,ptr->restart_pos);
+		lseek(fd,ptr->restart_pos,SEEK_SET);
+	}
+
+	if(GetDatafd(ptr) < 0){
+		return ;
+	}
+
+	FtpReply(ptr,FTP_DATA_OK,"Data connection founded");
+	char buf[65536];	
+	while(1){
+			
+		int nsize = Read(ptr->datafd,buf,sizeof(buf));
+		if(nsize == 0)	break;
+		Write(fd,buf,nsize);
+
+	}
+	FileUnlock(fd);
+	close(fd);
+	close(ptr->datafd);
+	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Upload file successfully\r\n");
 
 }
 

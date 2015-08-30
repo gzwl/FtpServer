@@ -1,7 +1,8 @@
 #include "configure.h"
 
-unsigned int Tunable_Recv_Timeout = 600;
-unsigned int Tunable_Data_Timeout = 60;
-unsigned short int Tunable_Listen_Port = 21;
-unsigned int Tunable_Local_Umask = 0077;
-const char *Tunable_Listen_Address = NULL;
+unsigned int recv_timeout = 600;
+unsigned int data_timeout = 60;
+unsigned int max_connections = 128;
+unsigned short int listen_port = 21;
+unsigned int local_umask = 0077;
+const char *listen_address = NULL;

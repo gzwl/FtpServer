@@ -27,12 +27,14 @@
 #include <time.h>
 
 
-#define ErrQuit(s)\
+#define err_quit(s)\
 	do{\
 			perror(s);\
 			exit(EXIT_FAILURE);\
 	}while(0)
 
-
+#define FTP_OK 0
+#define FTP_ERROR -1
+int ftp_listenfd;
 
 #endif

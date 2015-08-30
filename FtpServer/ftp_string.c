@@ -8,7 +8,7 @@ void StrSplit(const char *text,char *lhs,char *rhs,char cut)
 		strcpy(lhs,text);
 	}
 	else{
-		;	
+		;
 	}
 
 
@@ -22,7 +22,7 @@ void CleanRight(char *text)
 
 }
 
-void LetterUpper(char *text)
+void ftp_letter_upper(char *text)
 {
 	while(*text){
 		if(*text >= 'a' && *text <= 'z'){
@@ -34,7 +34,7 @@ void LetterUpper(char *text)
 
 int AllSpace(const char *text)
 {
-	while(*text){	
+	while(*text){
 		if(*text++ != ' ')		return 0;
 	}
 	return  1;

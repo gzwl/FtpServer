@@ -76,7 +76,7 @@ static ssize_t RecvPeek(int fd,void *buf,size_t n)
  * maxlen：能读取的最大字节数
  * 成功返回读取的字节数，失败返回-1
  */
-size_t Readline(int fd,void *buf,size_t maxlen)
+ssize_t readline(int fd,void *buf,size_t maxlen)
 {
 	size_t nleft = maxlen;
 	ssize_t nread;
@@ -144,12 +144,12 @@ int TcpServer(const char *host,unsigned short port)
 	}
 	return listenfd;
 }
-			
-			
+
+
 /*
  * SendFd - 向目标进程发送文件描述符
  * des：发送套接字
- * fd ：需要发送的文件描述符  
+ * fd ：需要发送的文件描述符
  * 成功返回发送的字节数，失败返回-1
  */
 
@@ -161,7 +161,7 @@ int SendFd(int des,int fd)
 
 	char ms[CMSG_SPACE(sizeof(fd))];
 	char sendchar;
-    
+
 	vec.iov_base = &sendchar;
 	vec.iov_len = sizeof(sendchar);
 
@@ -205,7 +205,7 @@ int RecvFd(const int des,int* fd)
 
 	msg.msg_control = ms;
 	msg.msg_controllen = sizeof(ms);
-	
+
 	msg.msg_name = 0;
 	msg.msg_namelen = 0;
 	msg.msg_iov = &vec;
@@ -220,7 +220,7 @@ int RecvFd(const int des,int* fd)
 /*
  * 	AcceptTimeout - 返回下一个已完成连接(带超时)
  *  sockfd  : 监听套接字
- *  cliaddr : 客户端地址和协议   
+ *  cliaddr : 客户端地址和协议
  *  timeout : 等待时间
  *  成功返回套接字，超时返回0，出错返回-1
  */
@@ -258,13 +258,13 @@ int AcceptTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
 int ConnectTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
 {
 	if(timeout > 0){
-		
-		NonblockFd(sockfd);			
+
+		NonblockFd(sockfd);
 		int flag = connect(sockfd,(struct sockaddr*)cliaddr,sizeof(struct sockaddr_in));
 
 		//connect连接未建立
 		if(flag == -1 && errno == EINPROGRESS){
-		
+
 			fd_set rset,wset;
 			FD_ZERO(&rset);
 			FD_SET(sockfd,&rset);
@@ -278,7 +278,7 @@ int ConnectTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
 			BlockFd(sockfd);
 			if(flag == 0)	return 0;	//超时
 			if(FD_ISSET(sockfd,&rset) || FD_ISSET(sockfd,&wset)){
-				int error,len;				
+				int error,len;
 				getsockopt(sockfd,SOL_SOCKET,SO_ERROR,&error,&len);
 				if(error)	return -1;
 				return 1;
@@ -293,11 +293,11 @@ int ConnectTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
 		}
 		//出现错误
 		else{
-			BlockFd(sockfd);	
+			BlockFd(sockfd);
 			return -1;
 		}
 
-	}	
+	}
 	else{
 		int flag = connect(sockfd,(struct sockaddr*)cliaddr,sizeof(struct sockaddr_in));
 		if(flag < 0)	return flag;
@@ -310,14 +310,3 @@ int ConnectTimeout(int sockfd,struct sockaddr_in *cliaddr,int timeout)
 
 
 
-
-
-
-			
-
-
-
-
-
-
- 

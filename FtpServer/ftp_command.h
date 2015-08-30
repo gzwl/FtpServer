@@ -1,7 +1,7 @@
-#ifndef COMMAND_H
-#define COMMAND_H
+#ifndef FTP_COMMAND_H
+#define FTP_COMMAND_H
 
-#include "event.h"
+#include "ftp_event.h"
 
 # define FTP_DATA_OK			150
 
@@ -16,7 +16,7 @@
 # define FTP_FILE_SUCCESS		250
 # define FTP_PWD_OK				257
 
-# define FTP_USERNAME_OK   		331	
+# define FTP_USERNAME_OK   		331
 # define FTP_REST_OK			350
 
 # define FTP_CONTROL_CLOSE 		421
@@ -29,8 +29,9 @@
 # define FTP_COMMAND_SEQ   		503
 # define FTP_LOGIN_ERR     		530
 # define FTP_FILE_ERR			550
-void FtpReply(event_t *ptr,int status,const char *text);
+void ftp_reply(ftp_event_t *ptr,int status,const char *text);
 
-void SolveCommand(event_t *ptr);
+int ftp_request_handler(ftp_event_t *ptr);
+void ftp_solve_command(ftp_event_t *ptr);
 
 #endif

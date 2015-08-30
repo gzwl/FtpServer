@@ -1,39 +1,21 @@
 #include "echo.h"
 #include "assist.h"
 #include "configure.h"
-#include "event.h"
+#include "ftp_event.h"
 #include "common.h"
+#include "ftp_process.h"
 
 
 int main(int argc,char **argv)
 {
-	CheckRoot();
-	HandleSigchld();
-	int listenfd = TcpServer(Tunable_Listen_Address,Tunable_Listen_Port);
-	while(1){
-		struct sockaddr_in cliaddr;
-		socklen_t len = sizeof(cliaddr);
-		int connfd = accept(listenfd,(struct sockaddr*)&cliaddr,&len);
-		if(connfd < 0){
-			if(errno == EINTR)	continue;
-			else	ErrQuit("main - accept");
-		}
-
-		pid_t pid;
-		if((pid = fork()) < 0){
-			ErrQuit("fork");
-		}
-		else if(pid == 0){
-			close(listenfd);
-			event_t eve;			
-			EventInit(&eve);
-			eve.connfd = connfd;
-			EventBegin(&eve);
-		}
-		else{
-			close(connfd);
-
-		}
+	if(getuid()){
+		fprintf(stderr,"FtpServer must be started by ROOT\n");
+		exit(EXIT_FAILURE);
 	}
+	int i;
+	for(i = 0;i < max_connections;i++)  ftp_process[i].pid = -1;
+	ftp_listenfd = TcpServer(listen_address,listen_port);
+    ftp_master_process_cycle();
+    return 0;
 }
 

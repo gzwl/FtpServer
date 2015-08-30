@@ -1,90 +1,90 @@
 #include "transfer.h"
 #include "common.h"
-#include "command.h"
-#include "work.h"
+#include "ftp_command.h"
 #include "assist.h"
+#include "ftp_process.h"
+#include "ftp_channel.h"
 
-//#define TEST
-static int GetDatafd(event_t *ptr);
-static char* GetListName(struct stat *buf,const char* name);
-static char* GetListSize(struct stat *buf);
-static char* GetListInfo(struct stat *buf);
-static char* GetListType(struct stat *buf);
-static char* GetListTime(struct stat *buf);
+static int ftp_get_data_fd(ftp_event_t *ptr);
+static char* ftp_get_list_name(struct stat *buf,const char* name);
+static char* ftp_get_list_size(struct stat *buf);
+static char* ftp_get_list_info(struct stat *buf);
+static char* ftp_get_list_type(struct stat *buf);
+static char* ftp_get_list_time(struct stat *buf);
 
-void DownloadFile(event_t *ptr)
+void download_file(ftp_event_t *ptr)
 {
-	//打开文件	
-	int fd = open(ptr->args,O_RDONLY);
+	//打开文件
+	int fd = open(ftp_connection.args,O_RDONLY);
 	if(fd <  0){
-		FtpReply(ptr,FTP_FILE_FAIL,"Open file fail\r\n");
+		ftp_reply(ptr,FTP_FILE_FAIL,"Open file fail\r\n");
 		return ;
 	}
 
 	//对文件加读锁
 	if(FileReadLock(fd) < 0){
-		FtpReply(ptr,FTP_FILE_FAIL,"Open file fail\r\n");
+		ftp_reply(ptr,FTP_FILE_FAIL,"Open file fail\r\n");
 		return ;
 	}
 	struct stat file;
 	if(fstat(fd,&file) < 0){
 		FileUnlock(fd);
-		FtpReply(ptr,FTP_FILE_FAIL,"Open file fail\r\n");
+		ftp_reply(ptr,FTP_FILE_FAIL,"Open file fail\r\n");
 		return ;
 	}
 
 	//只能传递普通文件
 	if(!S_ISREG(file.st_mode)){
 		FileUnlock(fd);
-		FtpReply(ptr,FTP_FILE_FAIL,"Can only download regular file\r\n");
+		ftp_reply(ptr,FTP_FILE_FAIL,"Can only download regular file\r\n");
 		return ;
 	}
 
 	//建立数据连接
-	if(GetDatafd(ptr) < 0){
+	if(ftp_get_data_fd(ptr) < 0){
 		FileUnlock(fd);
 		return ;
 	}
-    
+
 	size_t filesize = file.st_size;
-	filesize -= ptr->restart_pos;
-	lseek(fd,ptr->restart_pos,SEEK_SET);
-	ptr->restart_pos = 0;
+	filesize -= ftp_connection.restart_pos;
+	lseek(fd,ftp_connection.restart_pos,SEEK_SET);
+	ftp_connection.restart_pos = 0;
 
 	char text[64];
-	if(ptr->transmode == 0){
+	if(ftp_connection.transmode == 0){
 		sprintf(text,"Begin to transfer the file in ASCII mode(%d bytes)",filesize);
 	}
 	else
 		sprintf(text,"Begin to transfer the file in BINARY mode(%d bytes)",filesize);
-	FtpReply(ptr,FTP_DATA_OK,text);
+	ftp_reply(ptr,FTP_DATA_OK,text);
 
 
 	while(filesize > 0){
-		size_t nwrite = sendfile(ptr->datafd,fd,NULL,65536);
+		size_t nwrite = sendfile(ptr->fd,fd,NULL,65536);
 		if(nwrite == -1 && errno == EINTR)	continue;
 		filesize -= nwrite;
 	}
-	
+
 	FileUnlock(fd);
 	close(fd);
-	close(ptr->datafd);
-	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Download file successfully\r\n");
+	close(ptr->fd);
+	ftp_reply(ptr,FTP_DATA_OVER_CLOSE,"Download file successfully\r\n");
 
 }
 
-void UploadFile(event_t *ptr,int op)
+void upload_file(ftp_event_t *ptr,int op)
 {
 	//打开或创建文件
-	int fd = open(ptr->args,O_WRONLY | O_CREAT,0666);
+	int fd = open(ftp_connection.args,O_WRONLY | O_CREAT,0666);
 	if(fd < 0){
-		FtpReply(ptr,FTP_FILE_FAIL,"Upload file fail");
+		ftp_reply(ptr,FTP_FILE_FAIL,"Upload file fail");
 		return ;
 	}
 
 	//读锁
 	if(FileWriteLock(fd) < 0){
-		FtpReply(ptr,FTP_FILE_FAIL,"Upload file fail");
+		ftp_reply(ptr,FTP_FILE_FAIL,"Upload file fail");
 		return ;
 	}
 
@@ -92,44 +92,44 @@ void UploadFile(event_t *ptr,int op)
 	if(op == 0){
 		lseek(fd,0,SEEK_END);
 	}
-	
+
 	//STOR
 	else{
-		ftruncate(fd,ptr->restart_pos);
-		lseek(fd,ptr->restart_pos,SEEK_SET);
+		ftruncate(fd,ftp_connection.restart_pos);
+		lseek(fd,ftp_connection.restart_pos,SEEK_SET);
 	}
 
-	if(GetDatafd(ptr) < 0){
+	if(ftp_get_data_fd(ptr) < 0){
 		return ;
 	}
 
-	FtpReply(ptr,FTP_DATA_OK,"Data connection founded");
-	char buf[65536];	
+	ftp_reply(ptr,FTP_DATA_OK,"Data connection founded");
+	char buf[65536];
 	while(1){
-			
-		int nsize = Read(ptr->datafd,buf,sizeof(buf));
+
+		int nsize = Read(ptr->fd,buf,sizeof(buf));
 		if(nsize == 0)	break;
 		Write(fd,buf,nsize);
 
 	}
 	FileUnlock(fd);
 	close(fd);
-	close(ptr->datafd);
-	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Upload file successfully\r\n");
+	close(ptr->fd);
+	ftp_reply(ptr,FTP_DATA_OVER_CLOSE,"Upload file successfully\r\n");
 
 }
 
-void SendList(event_t *ptr,int op)
+void send_list(ftp_event_t *ptr,int op)
 {
-	if(GetDatafd(ptr) < 0){
+	if(ftp_get_data_fd(ptr) < 0){
 		return ;
 	}
     DIR *dir = opendir(".");
 	if(dir == NULL){
-		FtpReply(ptr,FTP_COMMAND_FAIL,"Can not open directory");
+		ftp_reply(ptr,FTP_COMMAND_FAIL,"Can not open directory");
 		return ;
 	}
-	FtpReply(ptr,FTP_DATA_OK,"Here comes the directory list");
+	ftp_reply(ptr,FTP_DATA_OK,"Here comes the directory list");
 
 	//LIST方式
 	if(op == 0){
@@ -137,27 +137,27 @@ void SendList(event_t *ptr,int op)
 #ifdef TEST
 	printf("Enter LIST option\n");
 #endif
-		struct dirent *dp;	
+		struct dirent *dp;
 		while(dp = readdir(dir)){
 			if(dp->d_name[0] == '.')		continue;
 			char text[1024] = {0};
 			struct stat buf;
 			if(lstat(dp->d_name,&buf) < 0)
-					ErrQuit("SendList - lstat");
-			strcpy(text,GetListType(&buf));
+					err_quit("SendList - lstat");
+			strcpy(text,ftp_get_list_type(&buf));
 			strcat(text," ");
-			strcat(text,GetListInfo(&buf));
+			strcat(text,ftp_get_list_info(&buf));
 			strcat(text," ");
-			strcat(text,GetListSize(&buf));
+			strcat(text,ftp_get_list_size(&buf));
 			strcat(text," ");
-			strcat(text,GetListTime(&buf));
+			strcat(text,ftp_get_list_time(&buf));
 			strcat(text," ");
-			strcat(text,GetListName(&buf,dp->d_name));
+			strcat(text,ftp_get_list_name(&buf,dp->d_name));
 			strcat(text,"\r\n");
 #ifdef TEST
 	printf("%s",text);
-#endif		
-			Write(ptr->datafd,text,strlen(text));
+#endif
+			Write(ptr->fd,text,strlen(text));
 		}
 
 	}
@@ -174,73 +174,71 @@ void SendList(event_t *ptr,int op)
 	   		char text[1024] = {0};
 	   		struct stat buf;
 		    if(lstat(dp->d_name,&buf) < 0)
-					ErrQuit("SendList - lstat");
-			strcpy(text,GetListName(&buf,dp->d_name));
+					err_quit("SendList - lstat");
+			strcpy(text,ftp_get_list_name(&buf,dp->d_name));
 			strcat(text,"\r\n");
 #ifdef TEST
 	printf("%s",text);
 #endif
-			Write(ptr->datafd,text,strlen(text));	
-	    }	
+			Write(ptr->fd,text,strlen(text));
+	    }
 	}
 
 	closedir(dir);
-	close(ptr->datafd);
-	FtpReply(ptr,FTP_DATA_OVER_CLOSE,"Send directory completely");
+	close(ptr->fd);
+	ftp_reply(ptr,FTP_DATA_OVER_CLOSE,"Send directory completely");
 }
 
 
 
-static int GetDatafd(event_t *ptr)
+static int ftp_get_data_fd(ftp_event_t *ptr)
 {
-	if(!ptr->pasv && !ptr->port){
-		FtpReply(ptr,FTP_COMMAND_FAIL,"Please designated the work mode(PASV/PORT)\r\n");
-		return -1;
+	if(!ftp_connection.pasv && !ftp_connection.port){
+		ftp_reply(ptr,FTP_COMMAND_FAIL,"Please designated the work mode(PASV/PORT)\r\n");
+		return FTP_ERROR;
 	}
 
 	//PASV模式
-	if(ptr->pasv){
-		IpcSendCommand(ptr,IPC_ACCEPT);
+	if(ftp_connection.pasv){
+		ftp_ipc_send_msg(ftp_connection.nobodyfd,IPC_ACCEPT,-1);
 		char res;
 		IpcRecvResult(ptr,&res);
 		if(res != IPC_COMMAND_OK){
-			FtpReply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
+			ftp_reply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
 			return -1;
 		}
-		if(IpcRecvFd(ptr,&ptr->datafd) < 0){
-			FtpReply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
+		if(IpcRecvFd(ptr,&ptr->fd) < 0){
+			ftp_reply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
 			return -1;
-		}	
+		}
 	}
 
 	//PORT模式
 	else{
-		IpcSendCommand(ptr,IPC_CONNECT);
-		IpcSendDigit(ptr,ptr->addr->sin_addr.s_addr);
-		IpcSendDigit(ptr,ptr->addr->sin_port);
-		char res;
-		IpcRecvResult(ptr,&res);
-		if(res == IPC_COMMAND_BAD){
-			FtpReply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
-			return -1;
-		}
-		if(IpcRecvFd(ptr,&ptr->datafd) < 0){
-			FtpReply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
+		ftp_ipc_send_msg(ftp_connection.nobodyfd,IPC_CONNECT,-1);
+		ftp_ipc_send_msg(ftp_connection.nobodyfd,ftp_connection.addr->sin_addr.s_addr,-1);
+        ftp_ipc_send_msg(ftp_connection.nobodyfd,ftp_connection.addr->sin_port,-1);
+
+        int msg;
+        int datafd;
+		ftp_ipc_recv_msg(ftp_connection.nobodyfd,&msg,datafd);
+		if(msg == IPC_COMMAND_BAD){
+			ftp_reply(ptr,FTP_DATA_BAD,"Can not found data connection\r\n");
 			return -1;
 		}
 	}
 
-	ptr->pasv = 0;
-	if(ptr->port){
-		ptr->port = 0;
-		free(ptr->addr);
+	ftp_connection.pasv = 0;
+	if(ftp_connection.port){
+		ftp_connection.port = 0;
+		free(ftp_connection.addr);
 	}
 
 	return 0;
 }
 
 
-static char* GetListName(struct stat *pstat,const char *name)
+static char* ftp_get_list_name(struct stat *pstat,const char *name)
 {
 	static char filename[128] = {0};
 	if(S_ISLNK(pstat->st_mode)){
@@ -253,10 +251,10 @@ static char* GetListName(struct stat *pstat,const char *name)
 	return filename;
 }
 
-static char* GetListType(struct stat *pstat)
+static char* ftp_get_list_type(struct stat *pstat)
 {
 	static char filetype[] = "----------";
-	
+
 	if(S_ISREG(pstat->st_mode)) 		filetype[0] = '-';
 	else if(S_ISDIR(pstat->st_mode))	filetype[0] = 'd';
 	else if(S_ISCHR(pstat->st_mode))	filetype[0] = 'c';
@@ -276,11 +274,11 @@ static char* GetListType(struct stat *pstat)
 	filetype[7] = (pstat->st_mode & S_IROTH) ? 'r' : '-';
 	filetype[8] = (pstat->st_mode & S_IWOTH) ? 'w' : '-';
 	filetype[9] = (pstat->st_mode & S_IXOTH) ? 'x' : '-';
-	
+
 	return filetype;
 }
 
-static char* GetListSize(struct stat *pstat)
+static char* ftp_get_list_size(struct stat *pstat)
 {
 	static char filesize[16];
 	sprintf(filesize,"%8u",(unsigned)pstat->st_size);
@@ -288,20 +286,20 @@ static char* GetListSize(struct stat *pstat)
 
 }
 
-static char* GetListInfo(struct stat *pstat)
+static char* ftp_get_list_info(struct stat *pstat)
 {
 	static char fileinfo[128];
 	sprintf(fileinfo," %3d %8d %8d",pstat->st_nlink,pstat->st_uid,pstat->st_gid);
 	return fileinfo;
 }
 
-static char* GetListTime(struct stat *pstat)
+static char* ftp_get_list_time(struct stat *pstat)
 {
 	static char filetime[128];
 	time_t tsec = pstat->st_ctime;
 	struct tm *p = localtime(&tsec);
 	if(p == NULL){
-		ErrQuit("GetListTime - localtime");
+		err_quit("GetListTime - localtime");
 	}
 	strftime(filetime,sizeof(filetime),"%b %e %H:%M",p);
 	return filetime;

@@ -2,34 +2,13 @@
 #include "common.h"
 #include "echo.h"
 
-void CheckRoot()
-{
-	if(getuid()){
-		fprintf(stderr,"FtpServer must be started by ROOT!\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
-static void Sigchld(int signo)
-{
-	pid_t pid;
-	while(waitpid(-1,0,WNOHANG) > 0);
-}
-
-void HandleSigchld()
-{
-	if(signal(SIGCHLD,Sigchld) == SIG_ERR){
-		ErrQuit("signal");
-	}
-}
-
 void GetLocalIp(struct in_addr  *ip)
 {
 	char name [32] = {0};
 	gethostname(name,sizeof(name));
 	struct hostent *p = gethostbyname(name);
 	if(p == NULL){
-		ErrQuit("GetLocalIP gethostbyname");
+		err_quit("GetLocalIP gethostbyname");
 	}
 	memcpy(ip,p->h_addr_list[0],sizeof(struct in_addr));
 }
@@ -68,11 +47,11 @@ int NonblockFd(int fd)
 {
 	int flag;
 	if((flag = fcntl(fd,F_GETFL,0)) < 0){
-		ErrQuit("NonblockFd fcntl");
+		err_quit("NonblockFd fcntl");
 	}
 	flag |= O_NONBLOCK;
 	if(fcntl(fd,F_SETFL,flag) < 0){
-		ErrQuit("NonblockFd fcntl");
+		err_quit("NonblockFd fcntl");
 	}
 	return 0;
 }
@@ -81,36 +60,14 @@ int BlockFd(int fd)
 {
 	int flag;
 	if((flag = fcntl(fd,F_GETFL,0)) < 0){
-		ErrQuit("BlockFd fcntl");
+		err_quit("BlockFd fcntl");
 	}
 	flag &= ~O_NONBLOCK;
 	if(fcntl(fd,F_SETFL,flag) < 0){
-		ErrQuit("BlockFd fcntl");
+		err_quit("BlockFd fcntl");
 	}
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

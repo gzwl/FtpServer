@@ -4,17 +4,21 @@
 #include "common.h"
 # define MAX_LEN 1024
 
+typedef int (*ftp_event_handler_ptr)(void*);
+
 typedef struct
 {
     int fd;
+    int data_type;
 
     unsigned read : 1;
     unsigned write : 1;
 
-    int (*read_handler)(void*);
-    int (*write_handler)(void*);
+    ftp_event_handler_ptr read_handler;
+    ftp_event_handler_ptr write_handler;
 
 }ftp_event_t;
+
 
 typedef struct
 {
@@ -39,6 +43,12 @@ typedef struct
 	size_t restart_pos;		    //断点重传的起点
 
 	struct sockaddr_in *addr;	//client地址和端口号，port模式使用
+
+	ftp_event_t* nobody;
+	ftp_event_t* client;
 }ftp_connection_t;
+
+ftp_event_t* ftp_event_alloc(int fd,ftp_event_handler_ptr read_handler,ftp_event_handler_ptr write_handler);
+void ftp_event_dealloc(ftp_event_t* ptr);
 
 #endif

@@ -34,12 +34,12 @@ ssize_t Read(int fd,void *buf,size_t n)
  * n : 要发送的字节数
  * 成功返回发送的字节数，失败返回-1
  */
-ssize_t Write(int fd,const void *buf,size_t n)
+ssize_t writen(int fd,const void *buf,size_t n)
 {
 	size_t nleft = n;
 	ssize_t nwrite;
 	while(nleft){
-		if((nwrite = write(fd,buf,nleft)) <= 0){
+		if((nwrite = write(fd,buf,nleft)) < 0){
 			if(errno == EINTR)	continue;
 			else	return -1;
 		}

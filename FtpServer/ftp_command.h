@@ -29,9 +29,8 @@
 # define FTP_COMMAND_SEQ   		503
 # define FTP_LOGIN_ERR     		530
 # define FTP_FILE_ERR			550
-void ftp_reply(ftp_event_t *ptr,int status,const char *text);
+void ftp_reply(int status,const char *text);
 
 int ftp_request_handler(ftp_event_t *ptr);
-void ftp_solve_command(ftp_event_t *ptr);
 
 #endif

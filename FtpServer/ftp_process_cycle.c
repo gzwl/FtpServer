@@ -8,6 +8,7 @@
 
 #include <pthread.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
 
 sig_atomic_t ftp_sigchld;
 sig_atomic_t ftp_sigalrm;
@@ -18,7 +19,6 @@ sig_atomic_t ftp_quit;
 
 
 static pthread_mutex_t *mptr;
-static unsigned ftp_mutex_held;
 
 static int ftp_respawn_work_process(int);
 static void ftp_work_process_init();
@@ -36,6 +36,8 @@ void ftp_master_process_cycle()
     int fd = open("/dev/zero",O_RDWR,0);
     mptr = mmap(0,sizeof(pthread_mutex_t),PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
     close(fd);
+
+    ftp_process_identity = FTP_MASTER_PROCESS;
 
     pthread_mutexattr_t mattr;
     pthread_mutexattr_init(&mattr);
@@ -57,6 +59,8 @@ void ftp_master_process_cycle()
         ftp_respawn_work_process(i);
 
     close(ftp_listenfd);
+
+    sigemptyset(&set);
 
     unsigned delay = 0;
 	while(1) {
@@ -100,6 +104,12 @@ static int ftp_respawn_work_process(int slot)
         if(socketpair(AF_UNIX,SOCK_DGRAM,0,ftp_process[slot].sockfd) < 0){
             err_quit("socketpair");
         }
+
+        int on = 1;
+        if(ioctl(ftp_process[slot].sockfd[1],FIONBIO,&on) == -1) {
+            err_quit("ioctl");
+        }
+
         pid_t pid = fork();
         if(pid) {
             ftp_process[slot].pid = pid;
@@ -120,7 +130,8 @@ void ftp_signal_work_process(int signo)
 {
     int i;
     for(i = 0;i < max_connections;i++) {
-        if(ftp_process[i].pid == -1) {
+        if(ftp_process[i].pid != -1) {
+            ftp_process[i].exited = 1;
             if(signo == SIGKILL)   kill(ftp_process[i].pid,SIGKILL);
             else    ftp_ipc_send_msg(ftp_process[i].sockfd[0],signo,-1);
         }
@@ -143,31 +154,36 @@ void ftp_work_process_cycle()
     socklen_t len = sizeof(cliaddr);
     while((ftp_connection.connfd = accept(ftp_listenfd,(struct sockaddr*)&cliaddr,&len)) == -1)
             continue;
+
+    int on = 1;
+    if(ioctl(ftp_connection.connfd,FIONBIO,&on) == -1) {
+        err_quit("ioctl");
+    }
     close(ftp_listenfd);
     pthread_mutex_unlock(mptr);
 
-    ftp_epoll_init();
-    ftp_event_t* pevent = (ftp_event_t*)malloc(sizeof(ftp_event_t));
-    pevent->fd = ftp_connection.connfd;
-    pevent->read = 1;
-    pevent->write = 0;
-    pevent->read_handler = ftp_request_handler;
-    pevent->write_handler = NULL;
-    ftp_reply(pevent,FTP_SERVER_READY,"FtpServer1.0\r\n");
-    ftp_epoll_add_event(pevent,FTP_READ_EVENT);
+    if(ftp_epoll_init() != FTP_OK) {
+        err_quit("ftp_epoll_init");
+    }
 
-    pevent = (ftp_event_t*)malloc(sizeof(ftp_event_t));
-    pevent->fd = ftp_process[ftp_process_slot].sockfd[1];
-    pevent->read = 1;
-    pevent->write = 0;
-    pevent->read_handler = ftp_work_process_cmd;
-    pevent->write_handler = NULL;
+    ftp_connection.client = ftp_event_alloc(ftp_connection.connfd,ftp_request_handler,NULL);
+
+    ftp_reply(FTP_SERVER_READY,"FtpServer1.0\r\n");
+
+    if(ftp_epoll_add_event(ftp_connection.client,FTP_READ_EVENT) != FTP_OK) {
+        err_quit("ftp_epoll_add_event");
+    }
+
+    ftp_event_t* pevent = ftp_event_alloc(ftp_process[ftp_process_slot].sockfd[1],ftp_work_process_cmd,NULL);
+    if(ftp_epoll_add_event(pevent,FTP_READ_EVENT) != FTP_OK) {
+        err_quit("ftp_epoll_add_event");
+    }
 
     while(1){
-        if(ftp_reload || ftp_quit) {
+        if(ftp_reload || ftp_quit || ftp_terminate) {
             exit(0);
         }
-
+        ftp_epoll_solve_event();
     }
 }
 
@@ -185,31 +201,14 @@ void ftp_work_process_init()
     sigemptyset(&set);
     sigprocmask(SIG_SETMASK,&set,NULL);
 
-	memset(ftp_connection.command,0,sizeof(ftp_connection.command));
-	memset(ftp_connection.com,0,sizeof(ftp_connection.com));
-	memset(ftp_connection.args,0,sizeof(ftp_connection.args));
-
-	ftp_connection.connfd = -1;
-	ftp_connection.listenfd = -1;
-
-	ftp_connection.login = -1;
-	ftp_connection.useruid = -1;
-	memset(ftp_connection.username,0,sizeof(ftp_connection.username));
-
-	ftp_connection.pasv = 0;
-	ftp_connection.port = 0;
-
-  	ftp_connection.transmode = 0;
-
-	ftp_connection.restart_pos = 0;
-
-	ftp_connection.addr = NULL;
+	ftp_connection_init();
 
 	//创建nobody进程
 	int fd[2];
 	if((socketpair(AF_UNIX,SOCK_STREAM,0,fd)) < 0){
 			err_quit("socketpair");
 	}
+
 	pid_t pid;
 	if((pid = fork()) < 0){
 		err_quit("fork");
@@ -219,7 +218,14 @@ void ftp_work_process_init()
         ftp_nobody_process_cycle(fd[1]);
 	}
 
+    int on = 1;
+    if(ioctl(fd[0],FIONBIO,&on) == -1) {
+        err_quit("ioctl");
+    }
+
     ftp_connection.nobodyfd = fd[0];
+    ftp_connection.nobody = ftp_event_alloc(fd[0],NULL,NULL);
+
 	close(fd[1]);
 
 }

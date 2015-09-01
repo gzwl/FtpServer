@@ -86,7 +86,7 @@ int ftp_epoll_solve_event()
         unsigned event_type = event_list[i].events;
         if(event_type & EPOLLIN)
             peve->read_handler(peve);
-        else
+        if(event_type & EPOLLOUT)
             peve->write_handler(peve);
     }
 }

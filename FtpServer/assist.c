@@ -13,33 +13,36 @@ void GetLocalIp(struct in_addr  *ip)
 	memcpy(ip,p->h_addr_list[0],sizeof(struct in_addr));
 }
 
-int FileReadLock(int fd)
+int ftp_file_read_lock(int fd)
 {
 	struct flock lock;
 	lock.l_type = F_RDLCK;
 	lock.l_whence = SEEK_SET;
 	lock.l_start = 0;
 	lock.l_len = 0;
+	lock.l_pid = getpid();
 	return fcntl(fd,F_SETLK,&lock);
 }
 
-int FileWriteLock(int fd)
+int ftp_file_write_lock(int fd)
 {
 	struct flock lock;
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
 	lock.l_start = 0;
 	lock.l_len = 0;
+	lock.l_pid = getpid();
 	return fcntl(fd,F_SETLK,&lock);
 }
 
-int FileUnlock(int fd)
+int ftp_file_unlock(int fd)
 {
 	struct flock unlock;
 	unlock.l_type = F_UNLCK;
 	unlock.l_whence = SEEK_SET;
 	unlock.l_start = 0;
 	unlock.l_len = 0;
+	unlock.l_pid = getpid();
 	return fcntl(fd,F_SETLK,&unlock);
 }
 

@@ -6,6 +6,8 @@
 #include "ftp_channel.h"
 #include "ftp_epoll.h"
 
+#include <sys/ioctl.h>
+
 static void ftp_download_file(ftp_event_t *ptr);
 static void ftp_upload_file(ftp_event_t *ptr);
 static void ftp_send_list(ftp_event_t *ptr);
@@ -83,25 +85,46 @@ void ftp_download_file(ftp_event_t *ptr)
 	int fd = open(ftp_connection.args,O_RDONLY);
 	if(fd <  0){
 		ftp_reply(FTP_FILE_FAIL,"Open file fail\r\n");
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
 
+    int on = 1;
+    if(ioctl(fd,FIONBIO,&on) == -1){
+        ftp_reply(FTP_FILE_FAIL,"Open file fail\r\n");
+        close(fd);
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
+        return ;
+    }
+
 	//对文件加读锁
-	if(FileReadLock(fd) < 0){
+	if(ftp_file_read_lock(fd) < 0){
 		ftp_reply(FTP_FILE_FAIL,"Open file fail\r\n");
+        close(fd);
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
+
 	struct stat file;
 	if(fstat(fd,&file) < 0){
-		FileUnlock(fd);
+		ftp_file_unlock(fd);
 		ftp_reply(FTP_FILE_FAIL,"Open file fail\r\n");
+        close(fd);
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
 
 	//只能传递普通文件
 	if(!S_ISREG(file.st_mode)){
-		FileUnlock(fd);
+		ftp_file_unlock(fd);
 		ftp_reply(FTP_FILE_FAIL,"Can only download regular file\r\n");
+        close(fd);
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
 
@@ -125,7 +148,7 @@ void ftp_download_file(ftp_event_t *ptr)
 		filesize -= nwrite;
 	}
 
-	FileUnlock(fd);
+	ftp_file_unlock(fd);
 	close(fd);
 	close(ptr->fd);
 	ftp_reply(FTP_DATA_OVER_CLOSE,"Download file successfully\r\n");
@@ -138,12 +161,17 @@ void ftp_upload_file(ftp_event_t *ptr)
 	int fd = open(ftp_connection.args,O_WRONLY | O_CREAT,0666);
 	if(fd < 0){
 		ftp_reply(FTP_FILE_FAIL,"Upload file fail");
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
 
 	//读锁
-	if(FileWriteLock(fd) < 0){
+	if(ftp_file_write_lock(fd) < 0){
 		ftp_reply(FTP_FILE_FAIL,"Upload file fail");
+		close(fd);
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
 
@@ -162,14 +190,14 @@ void ftp_upload_file(ftp_event_t *ptr)
 	char buf[65536];
 	while(1){
 
-		int nsize = Read(ptr->fd,buf,sizeof(buf));
+		int nsize = readn(ptr->fd,buf,sizeof(buf));
 		if(nsize == 0)	break;
 		writen(fd,buf,nsize);
-
 	}
-	FileUnlock(fd);
+	ftp_file_unlock(fd);
 	close(fd);
 	close(ptr->fd);
+	ftp_event_dealloc(ptr);
 	ftp_reply(FTP_DATA_OVER_CLOSE,"Upload file successfully\r\n");
 
 }
@@ -179,6 +207,8 @@ void ftp_send_list(ftp_event_t *ptr)
     DIR *dir = opendir(".");
 	if(dir == NULL){
 		ftp_reply(FTP_COMMAND_FAIL,"Can not open directory");
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
 		return ;
 	}
 	ftp_reply(FTP_DATA_OK,"Here comes the directory list");
@@ -227,6 +257,7 @@ void ftp_send_list(ftp_event_t *ptr)
 
 	closedir(dir);
 	close(ptr->fd);
+	ftp_event_dealloc(ptr);
 	ftp_reply(FTP_DATA_OVER_CLOSE,"Send directory completely");
 }
 

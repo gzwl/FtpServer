@@ -8,11 +8,11 @@ void HandleSigchld();
 
 void GetLocalIp(struct in_addr *ip);
 
-int FileReadLock(int fd);
+int ftp_file_read_lock(int fd);
 
-int FileWriteLock(int fd);
+int ftp_file_write_lock(int fd);
 
-int FileUnlock(int fd);
+int ftp_file_unlock(int fd);
 
 int BlockFd(int fd);
 

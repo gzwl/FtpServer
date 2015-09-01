@@ -9,7 +9,7 @@
  * n：要读取的字节数
  * 成功返回读取的字节数，失败返回-1
  */
-ssize_t Read(int fd,void *buf,size_t n)
+ssize_t readn(int fd,void *buf,size_t n)
 {
 	size_t nleft = n;
 	ssize_t nread;
@@ -88,7 +88,7 @@ ssize_t readline(int fd,void *buf,size_t maxlen)
 		ssize_t i;
 		for(i = 0;i < nread;i++){
 			if(*(ptr + i) == '\n'){
-				nread = Read(fd,ptr,i + 1);
+				nread = readn(fd,ptr,i + 1);
 				if(nread != i + 1)		return -1;
 				nleft -= nread;
 				ptr += nread;
@@ -96,7 +96,7 @@ ssize_t readline(int fd,void *buf,size_t maxlen)
 				return maxlen - nleft;
 			}
 		}
-		nread = Read(fd,ptr,nread);
+		nread = readn(fd,ptr,nread);
 		if(nread != i)	return -1;
 		nleft -= nread;
 		ptr += nread;

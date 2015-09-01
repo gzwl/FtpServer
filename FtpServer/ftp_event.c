@@ -1,6 +1,7 @@
 #include "ftp_event.h"
 
 extern ftp_connection_t ftp_connection;
+
 ftp_event_t* ftp_event_alloc(int fd,ftp_event_handler_ptr read_handler,ftp_event_handler_ptr write_handler)
 {
     ftp_event_t* pevent = (ftp_event_t*)malloc(sizeof(ftp_event_t));

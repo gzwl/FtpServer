@@ -10,8 +10,8 @@
 #define IPC_CONNECT		 1002
 
 
-#define IPC_COMMAND_OK   5
-#define IPC_COMMAND_BAD  6
+#define FTP_IPC_OK   1003
+#define FTP_IPC_BAD  1004
 
 typedef struct{
     int message;

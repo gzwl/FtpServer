@@ -8,15 +8,16 @@
 
 #include <sys/ioctl.h>
 
-static void ftp_download_file(ftp_event_t *ptr);
-static void ftp_upload_file(ftp_event_t *ptr);
-static void ftp_send_list(ftp_event_t *ptr);
-static int ftp_wait_data(ftp_event_t * ptr);
-static char* ftp_get_list_name(struct stat *buf,const char* name);
-static char* ftp_get_list_size(struct stat *buf);
-static char* ftp_get_list_info(struct stat *buf);
-static char* ftp_get_list_type(struct stat *buf);
-static char* ftp_get_list_time(struct stat *buf);
+static void ftp_download_file(ftp_event_t* ptr);
+static void ftp_upload_file(ftp_event_t* ptr);
+static void ftp_send_list(ftp_event_t* ptr);
+static int ftp_wait_data(ftp_event_t* ptr);
+static int ftp_data_transfile(ftp_event_t* ptr);
+static char* ftp_get_list_name(struct stat* buf,const char* name);
+static char* ftp_get_list_size(struct stat* buf);
+static char* ftp_get_list_info(struct stat* buf);
+static char* ftp_get_list_type(struct stat* buf);
+static char* ftp_get_list_time(struct stat* buf);
 
 int ftp_get_data_fd(ftp_event_t *ptr,int op)
 {
@@ -41,7 +42,8 @@ int ftp_get_data_fd(ftp_event_t *ptr,int op)
 
 	ftp_connection.nobody->data_type = op;
 	ftp_connection.nobody->read_handler = ftp_wait_data;
-	ftp_epoll_add_event(ftp_connection.nobody,FTP_READ_EVENT);
+	if(ftp_epoll_add_event(ftp_connection.nobody,FTP_READ_EVENT) == FTP_ERROR)
+        err_quit("ftp_get_data_fd - ftp_epoll_add_event");
 
 	return FTP_OK;
 }
@@ -50,14 +52,13 @@ int ftp_wait_data(ftp_event_t* ptr)
 {
     int msg;
     int datafd;
-    ftp_epoll_del_event(ptr,FTP_READ_EVENT);
     if(ftp_ipc_recv_msg(ptr->fd,&msg,&datafd) == FTP_ERROR){
         ftp_reply(FTP_DATA_BAD,"Can not found data connection\r\n");
         return FTP_ERROR;
     }
-
+    ftp_epoll_del_event(ptr,FTP_READ_EVENT);
     ftp_event_t* neweve = ftp_event_alloc(datafd,NULL,NULL);
-    neweve = ptr->data_type;
+    neweve->data_type = ptr->data_type;
 
     switch(neweve->data_type){
         case FTP_CMD_APPE : neweve->read = 1;
@@ -76,7 +77,7 @@ int ftp_wait_data(ftp_event_t* ptr)
                             ftp_epoll_add_event(neweve,FTP_WRITE_EVENT);
                             break;
     }
-
+    return FTP_OK;
 }
 
 void ftp_download_file(ftp_event_t *ptr)
@@ -87,6 +88,7 @@ void ftp_download_file(ftp_event_t *ptr)
 		ftp_reply(FTP_FILE_FAIL,"Open file fail\r\n");
         close(ptr->fd);
         ftp_event_dealloc(ptr);
+        err_quit("open");
 		return ;
 	}
 
@@ -141,18 +143,8 @@ void ftp_download_file(ftp_event_t *ptr)
 		sprintf(text,"Begin to transfer the file in BINARY mode(%d bytes)",filesize);
 	ftp_reply(FTP_DATA_OK,text);
 
-
-	while(filesize > 0){
-		size_t nwrite = sendfile(ptr->fd,fd,NULL,65536);
-		if(nwrite == -1 && errno == EINTR)	continue;
-		filesize -= nwrite;
-	}
-
-	ftp_file_unlock(fd);
-	close(fd);
-	close(ptr->fd);
-	ftp_reply(FTP_DATA_OVER_CLOSE,"Download file successfully\r\n");
-
+    ptr->diskfd = fd;
+    ptr->write_handler = ftp_data_transfile;
 }
 
 void ftp_upload_file(ftp_event_t *ptr)
@@ -175,6 +167,15 @@ void ftp_upload_file(ftp_event_t *ptr)
 		return ;
 	}
 
+    int on = 1;
+    if(ioctl(fd,FIONBIO,&on) == -1){
+        ftp_reply(FTP_FILE_FAIL,"Open file fail\r\n");
+        close(fd);
+        close(ptr->fd);
+        ftp_event_dealloc(ptr);
+        return ;
+    }
+
 	//APPE
 	if(ptr->data_type == FTP_CMD_APPE){
 		lseek(fd,0,SEEK_END);
@@ -187,18 +188,16 @@ void ftp_upload_file(ftp_event_t *ptr)
 	}
 
 	ftp_reply(FTP_DATA_OK,"Data connection founded");
+
 	char buf[65536];
 	while(1){
-
 		int nsize = readn(ptr->fd,buf,sizeof(buf));
 		if(nsize == 0)	break;
 		writen(fd,buf,nsize);
 	}
-	ftp_file_unlock(fd);
-	close(fd);
-	close(ptr->fd);
-	ftp_event_dealloc(ptr);
-	ftp_reply(FTP_DATA_OVER_CLOSE,"Upload file successfully\r\n");
+
+    ptr->diskfd = fd;
+    ptr->read_handler = ftp_data_transfile;
 
 }
 
@@ -255,6 +254,7 @@ void ftp_send_list(ftp_event_t *ptr)
 	    }
 	}
 
+    ftp_epoll_del_event(ptr,FTP_WRITE_EVENT);
 	closedir(dir);
 	close(ptr->fd);
 	ftp_event_dealloc(ptr);
@@ -327,4 +327,35 @@ static char* ftp_get_list_time(struct stat *pstat)
 	strftime(filetime,sizeof(filetime),"%b %e %H:%M",p);
 	return filetime;
 }
+
+static int ftp_data_transfile(ftp_event_t* ptr)
+{
+    int curfd,desfd;
+    if(ptr->data_type == FTP_CMD_RETR){
+        curfd = ptr->diskfd;
+        desfd = ptr->fd;
+    }
+    else {
+        curfd = ptr->fd;
+        desfd = ptr->diskfd;
+    }
+	while(1){
+		ssize_t nwrite = sendfile(desfd,curfd,NULL,65536);
+        if(nwrite == -1) {
+            if(errno == EINTR)  continue;
+            else    return FTP_ERROR;
+        }
+        else if(nwrite == 0)    break;
+	}
+
+	ftp_file_unlock(ptr->diskfd);
+	close(ptr->diskfd);
+	close(ptr->fd);
+	if(ptr->read)   ftp_epoll_del_event(ptr,FTP_READ_EVENT);
+	else            ftp_epoll_del_event(ptr,FTP_WRITE_EVENT);
+	ftp_event_dealloc(ptr);
+	ftp_reply(FTP_DATA_OVER_CLOSE,"Download file successfully\r\n");
+	return FTP_OK;
+}
+
 

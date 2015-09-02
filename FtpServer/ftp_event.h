@@ -4,11 +4,14 @@
 #include "common.h"
 # define MAX_LEN 1024
 
+struct ftp_event_t;
+
 typedef int (*ftp_event_handler_ptr)(void*);
 
 typedef struct
 {
     int fd;
+    int diskfd;
     int data_type;
 
     unsigned read : 1;
@@ -27,7 +30,6 @@ typedef struct
 	char args[MAX_LEN];			//参数
 
 	int connfd;			    	//client与server的控制连接fd
-	int listenfd;				//server监听fd,pasv模式下使用
 
 	int nobodyfd;
 
@@ -46,6 +48,7 @@ typedef struct
 
 	ftp_event_t* nobody;
 	ftp_event_t* client;
+
 }ftp_connection_t;
 
 ftp_event_t* ftp_event_alloc(int fd,ftp_event_handler_ptr read_handler,ftp_event_handler_ptr write_handler);

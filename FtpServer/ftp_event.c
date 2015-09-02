@@ -6,6 +6,7 @@ ftp_event_t* ftp_event_alloc(int fd,ftp_event_handler_ptr read_handler,ftp_event
 {
     ftp_event_t* pevent = (ftp_event_t*)malloc(sizeof(ftp_event_t));
     pevent->fd = fd;
+    pevent->diskfd = -1;
     if(read_handler) {
         pevent->read = 1;
         pevent->read_handler = read_handler;
@@ -38,7 +39,6 @@ void ftp_connection_init()
 	memset(ftp_connection.args,0,sizeof(ftp_connection.args));
 
 	ftp_connection.connfd = -1;
-	ftp_connection.listenfd = -1;
 
 	ftp_connection.login = -1;
 	ftp_connection.useruid = -1;

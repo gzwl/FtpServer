@@ -6,7 +6,7 @@ void CheckRoot();
 
 void HandleSigchld();
 
-void GetLocalIp(struct in_addr *ip);
+void ftp_get_local_ip(struct in_addr *ip);
 
 int ftp_file_read_lock(int fd);
 

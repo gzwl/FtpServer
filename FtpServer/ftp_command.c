@@ -3,9 +3,9 @@
 #include "ftp_process.h"
 #include "ftp_channel.h"
 #include "common.h"
-#include "work.h"
 #include "configure.h"
 #include "ftp_transfer.h"
+#include "ftp_epoll.h"
 
 static void ftp_solve_command(ftp_event_t* ptr);
 static void solve_appe(ftp_event_t *ptr);
@@ -31,6 +31,7 @@ static void solve_syst(ftp_event_t *ptr);
 static void solve_type(ftp_event_t *ptr);
 
 static void ftp_reset_command();
+static int ftp_solve_pasv_result(ftp_event_t* ptr);
 
 typedef struct
 {
@@ -78,7 +79,9 @@ static ftp_cmd_t ftp_cmd_s[] = {
 int ftp_request_handler(ftp_event_t *ptr)
 {
     ftp_reset_command();
-    if(readline(ptr->fd,ftp_connection.command,MAX_LEN) <= 0)  return ;
+    if(readline(ptr->fd,ftp_connection.command,MAX_LEN) <= 0){
+
+    }
     sscanf(ftp_connection.command,"%s %s",ftp_connection.com,ftp_connection.args);
     ftp_letter_upper(ftp_connection.com);
     ftp_solve_command(ptr);	//调用命令处理函数
@@ -271,13 +274,29 @@ static void solve_port(ftp_event_t *ptr)
 
 static void solve_pasv(ftp_event_t *ptr)
 {
+	if(ftp_ipc_send_msg(ftp_connection.nobodyfd,IPC_LISTEN_OPEN,NULL) == FTP_ERROR) {
+        err_quit("ftp_ipc_send_msg");
+	}
+
+    ftp_connection.nobody->read = 1;
+    ftp_connection.nobody->read_handler = ftp_solve_pasv_result;
+    ftp_epoll_add_event(ftp_connection.nobody,FTP_READ_EVENT);
+}
+
+static int ftp_solve_pasv_result(ftp_event_t* ptr)
+{
 	struct in_addr ip;
-	GetLocalIp(&ip);
-	ftp_ipc_send_msg(ftp_connection.nobodyfd,IPC_LISTEN_OPEN,NULL);
-	char res;
-	ftp_ipc_recv_msg(ftp_connection.nobodyfd,&res,NULL);
-	if(res == IPC_COMMAND_BAD)
+	ftp_get_local_ip(&ip);
+
+	int res;
+	while(ftp_ipc_recv_msg(ftp_connection.nobodyfd,&res,NULL) == FTP_ERROR) {
+        if(errno == EINTR)  continue;
+        else return FTP_ERROR;
+	}
+
+	if(res == FTP_IPC_BAD)
 		ftp_reply(FTP_COMMAND_FAIL,"Enter pasv mode fail");
+
 	char addr[20];
 	inet_ntop(AF_INET,&ip,addr,sizeof(addr));
 	uint32_t tmp[6];
@@ -291,6 +310,8 @@ static void solve_pasv(ftp_event_t *ptr)
 	ftp_reply(FTP_PASV_OK,text);
 	ftp_connection.pasv = 1;
 
+	ftp_epoll_del_event(ptr,FTP_READ_EVENT);
+	return FTP_OK;
 }
 
 static void solve_pwd(ftp_event_t *ptr)

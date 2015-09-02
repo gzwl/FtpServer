@@ -2,15 +2,28 @@
 #include "common.h"
 #include "echo.h"
 
-void GetLocalIp(struct in_addr  *ip)
+#include <sys/ioctl.h>
+#include <net/if.h>
+
+void ftp_get_local_ip(struct in_addr  *ip)
 {
-	char name [32] = {0};
-	gethostname(name,sizeof(name));
-	struct hostent *p = gethostbyname(name);
-	if(p == NULL){
-		err_quit("GetLocalIP gethostbyname");
-	}
-	memcpy(ip,p->h_addr_list[0],sizeof(struct in_addr));
+ 	int sockfd;
+ 	if((sockfd = socket(AF_INET,SOCK_STREAM,0)) == -1){
+ 		err_quit("socket");
+ 	}
+
+ 	struct ifreq req;
+
+ 	memset(&req,0,sizeof(struct ifreq));
+ 	strcpy(req.ifr_name, "eth0");
+
+ 	if(ioctl(sockfd,SIOCGIFADDR,&req) == -1)
+ 		err_quit("ioctl");
+
+ 	struct sockaddr_in *host = (struct sockaddr_in*)&req.ifr_addr;
+ 	*ip = host->sin_addr;
+ 	close(sockfd);
+ 	return ;
 }
 
 int ftp_file_read_lock(int fd)

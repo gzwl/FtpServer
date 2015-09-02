@@ -175,6 +175,7 @@ void ftp_work_process_cycle()
     }
 
     ftp_event_t* pevent = ftp_event_alloc(ftp_process[ftp_process_slot].sockfd[1],ftp_work_process_cmd,NULL);
+
     if(ftp_epoll_add_event(pevent,FTP_READ_EVENT) != FTP_OK) {
         err_quit("ftp_epoll_add_event");
     }
@@ -298,11 +299,13 @@ void ftp_nobody_process_init()
 //打开监听套接字，PASV模式下使用
 static void ftp_nobody_listenfd(int fd,int* listenfd)
 {
-	struct in_addr ip;
-	GetLocalIp(&ip);
-	char ipstr[40] = {0};
-	inet_ntop(AF_INET,&ip,ipstr,sizeof(ipstr));
-	*listenfd = TcpServer(ipstr,20);
+    if(*listenfd == -1){
+        struct in_addr ip;
+        ftp_get_local_ip(&ip);
+        char ipstr[40] = {0};
+        inet_ntop(AF_INET,&ip,ipstr,sizeof(ipstr));
+        *listenfd = TcpServer(ipstr,20);
+    }
 	if(*listenfd == -1)
 		ftp_ipc_send_msg(fd,FTP_OK,-1);
 	else

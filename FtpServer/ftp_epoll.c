@@ -52,6 +52,7 @@ int ftp_epoll_del_event(ftp_event_t* event,unsigned flag)
     if(flag == FTP_READ_EVENT){
         flag = ~EPOLLIN;
         event->read = 0;
+        event->read_handler = NULL;
         if(event->write) {
             op = EPOLL_CTL_MOD;
             prev = EPOLLOUT;
@@ -62,6 +63,7 @@ int ftp_epoll_del_event(ftp_event_t* event,unsigned flag)
     else{
         flag = ~EPOLLOUT;
         event->write = 0;
+        event->write_handler = NULL;
         if(event->read) {
             op = EPOLL_CTL_MOD;
             prev = EPOLLIN;
@@ -72,7 +74,7 @@ int ftp_epoll_del_event(ftp_event_t* event,unsigned flag)
 
     struct epoll_event ee;
     ee.data.ptr = event;
-    ee.events = prev | flag;
+    ee.events = prev & flag;
     if(epoll_ctl(epfd,op,event->fd,&ee) == -1)  return FTP_ERROR;
     return FTP_OK;
 }
